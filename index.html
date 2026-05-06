@@ -11,7 +11,7 @@
        ══════════════════════════════════════════════ -->
   <script>
   const APP_CONFIG = {
-    SCRIPT_URL:     "https://script.google.com/macros/s/AKfycbzCoLa6W_g1P1PyD5ej9o26r35Y48-qxVpw453WA5PXcFhy8kw3s-Pw7VGjZQa-9IVI/exec",
+    SCRIPT_URL:     "https://script.google.com/macros/s/AKfycbxMplmT-PvDif9kHvBwRTH79ojtock75AW8_xdvDcN931WJs7cHQcWKJP_NLA4QZdc6/exec",
     SHOP_NAME:      "裕登",
     SHOP_SUBTITLE:  "特斯拉授權鈑噴中心 及 輪胎服務中心",
     STAFF_LABEL:    "員工模式",
@@ -113,9 +113,18 @@
 
     /* ── Time slots ── */
     .time-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
-    .time-slot{border:1px solid var(--border2);border-radius:var(--rs);padding:9px 4px 8px;text-align:center;cursor:pointer;transition:all .15s;user-select:none;}
-    .ts-time{display:block;font-size:13px;font-weight:600;color:var(--text);}
-    .ts-cap{display:block;font-size:10px;margin-top:4px;line-height:1;color:var(--hint);transition:color .15s;}
+    .time-slot{
+      border:1px solid var(--border2);border-radius:var(--rs);
+      padding:10px 4px 9px;text-align:center;cursor:pointer;
+      transition:all .15s;user-select:none;
+    }
+    /* 強制只顯示 HH:MM，防止瀏覽器把時間字串展開成完整日期 */
+    .ts-time{
+      display:block;font-size:14px;font-weight:700;
+      color:var(--text);letter-spacing:.5px;font-variant-numeric:tabular-nums;
+      white-space:nowrap;overflow:hidden;text-overflow:clip;
+    }
+    .ts-cap{display:block;font-size:10px;margin-top:5px;line-height:1;color:var(--hint);transition:color .15s;}
     .ts-cap.cap-ok{color:var(--ok);} .ts-cap.cap-few{color:var(--warn);} .ts-cap.cap-none{color:var(--danger);}
     .time-slot:hover:not(.ts-full):not(.ts-loading){border-color:var(--gold);}
     .time-slot:hover:not(.ts-full):not(.ts-loading) .ts-time{color:var(--gold);}
@@ -166,10 +175,14 @@
     .field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
     .field select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23aeaeb2' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:36px;cursor:pointer;}
 
-    /* Checkbox */
-    .check-row{display:flex;align-items:center;gap:10px;padding:10px 13px;border:1px solid var(--border2);border-radius:var(--rs);background:var(--s2);cursor:pointer;}
-    .check-row input[type=checkbox]{width:18px;height:18px;accent-color:var(--staff);cursor:pointer;flex-shrink:0;}
-    .check-row label{font-size:14px;color:var(--text);cursor:pointer;user-select:none;}
+    /* ── 合約選擇：兩個按鈕互選 ── */
+    .contract-toggle{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+    .contract-btn{border:1.5px solid var(--border2);border-radius:var(--rs);padding:12px 8px;text-align:center;cursor:pointer;font-size:14px;font-weight:600;color:var(--muted);background:var(--s2);transition:all .18s;user-select:none;line-height:1.3;}
+    .contract-btn .cb-icon{display:block;font-size:18px;margin-bottom:4px;}
+    .contract-btn:hover{border-color:var(--gold);color:var(--gold);}
+    .contract-btn.sel-contract{background:var(--ok);border-color:var(--ok);color:#fff;}
+    .contract-btn.sel-noncontract{background:var(--staff);border-color:var(--staff);color:#fff;}
+    .contract-btn.sel-contract:hover,.contract-btn.sel-noncontract:hover{opacity:.9;}
 
     /* Error */
     .err{font-size:11px;color:var(--danger);margin-top:5px;display:none;}
@@ -307,8 +320,20 @@
       <div class="card-label">車輛資料</div>
       <div class="field">
         <label>車牌號碼<span class="req">*</span></label>
-        <input type="text" id="plate" placeholder="例：REB-3008" oninput="this.value=this.value.toUpperCase()" autocomplete="off" />
+        <input type="text" id="plate" placeholder="例：REB-3008"
+               oninput="this.value=this.value.toUpperCase()" autocomplete="off" />
         <div class="err" id="err-plate">請輸入車牌號碼</div>
+      </div>
+      <div class="field">
+        <label>車輛 VIN 碼（17碼）<span class="req">*</span></label>
+        <input type="text" id="vin"
+               style="font-family:'SF Mono','Menlo','Courier New',monospace;letter-spacing:1.5px"
+               placeholder="17 位 VIN 碼" maxlength="17"
+               oninput="this.value=this.value.toUpperCase().replace(/[^A-HJ-NPR-Z0-9]/g,'');
+                        if(this.value.length===17) showErr('err-vin',false);"
+               autocomplete="off" />
+        <div class="hint">可於行照或前擋風玻璃左前沿查詢，共 17 碼，不含 I、O、Q</div>
+        <div class="err" id="err-vin">請輸入完整 17 碼 VIN（英文字母不含 I、O、Q）</div>
       </div>
     </div>
 
@@ -361,22 +386,25 @@
       </div>
     </div>
 
-    <!-- 員工專屬：[非合約] 勾選 -->
+    <!-- 員工專屬：合約狀態選擇 -->
     <div class="card" id="noncontract-card" style="display:none">
-      <div class="card-label">其他<span class="staff-tag">員工</span></div>
-      <div class="field">
-        <div class="check-row" onclick="toggleNonContract()">
-          <input type="checkbox" id="non-contract" onclick="event.stopPropagation()" onchange="" />
-          <label for="non-contract">[非合約]</label>
+      <div class="card-label">合約狀態<span class="staff-tag">員工</span></div>
+      <div class="contract-toggle">
+        <div class="contract-btn" id="btn-contract" onclick="selectContract('contract')">
+          <span class="cb-icon">✅</span>有合約
+        </div>
+        <div class="contract-btn" id="btn-noncontract" onclick="selectContract('noncontract')">
+          <span class="cb-icon">🔖</span>非合約
         </div>
       </div>
+      <div class="hint" style="margin-top:8px;font-size:11px;color:var(--hint)">點選後再點一次可取消選擇</div>
     </div>
 
     <div class="info-box staff-info" id="staff-info-box" style="display:none">
       <strong>員工模式提示</strong><br>
       您正以員工身份代為填寫預約。<br>
       「類別區分」員工可選全部選項（虛線框為員工專屬）；車主只看到「理賠」和「自費」。<br>
-      「[非合約]」勾選框僅員工可見。
+      「合約狀態」選擇欄位僅員工可見。
     </div>
 
     <div class="btn-row">
@@ -396,6 +424,7 @@
         <span class="sum-v"><span id="sum-time">—</span><span id="sum-cap-badge"></span></span>
       </div>
       <div class="sum-row"><span class="sum-k">車牌號碼</span><span class="sum-v" id="sum-plate">—</span></div>
+      <div class="sum-row"><span class="sum-k">VIN 碼</span><span class="sum-v" id="sum-vin" style="font-family:monospace;letter-spacing:.5px;font-size:12px">—</span></div>
       <div class="sum-row"><span class="sum-k">車主姓名</span><span class="sum-v" id="sum-contact">—</span></div>
       <div class="sum-row"><span class="sum-k">聯絡電話</span><span class="sum-v" id="sum-phone">—</span></div>
       <div class="sum-row"><span class="sum-k">Email</span><span class="sum-v" id="sum-email">—</span></div>
@@ -404,7 +433,7 @@
       <div class="sum-row"><span class="sum-k">保險公司</span><span class="sum-v" id="sum-insurer">—</span></div>
       <!-- 員工專屬摘要 -->
       <div id="sum-staff-rows" style="display:none">
-        <div class="sum-row"><span class="sum-k">[非合約]</span><span class="sum-v" id="sum-noncontract">—</span></div>
+        <div class="sum-row"><span class="sum-k">合約狀態</span><span class="sum-v" id="sum-noncontract">—</span></div>
       </div>
     </div>
 
@@ -614,9 +643,26 @@ function renderInsurerSelect(insurers) {
 }
 
 // ── [非合約] checkbox ─────────────────────────────────────
-function toggleNonContract() {
-  const cb = document.getElementById("non-contract");
-  cb.checked = !cb.checked;
+// 合約狀態選擇（有合約 / 非合約 / 取消）
+let contractState = "";  // "" | "contract" | "noncontract"
+function selectContract(type) {
+  if (contractState === type) {
+    // 再點一次 → 取消
+    contractState = "";
+    document.getElementById("btn-contract").classList.remove("sel-contract");
+    document.getElementById("btn-noncontract").classList.remove("sel-noncontract");
+    return;
+  }
+  contractState = type;
+  if (type === "contract") {
+    document.getElementById("btn-contract").classList.add("sel-contract");
+    document.getElementById("btn-contract").classList.remove("sel-noncontract");
+    document.getElementById("btn-noncontract").classList.remove("sel-contract","sel-noncontract");
+  } else {
+    document.getElementById("btn-noncontract").classList.add("sel-noncontract");
+    document.getElementById("btn-noncontract").classList.remove("sel-contract");
+    document.getElementById("btn-contract").classList.remove("sel-contract","sel-noncontract");
+  }
 }
 
 // ── 時段 ──────────────────────────────────────────────────
@@ -684,7 +730,9 @@ function renderTimeSlots(slots, avail) {
 
     const el = document.createElement("div");
     el.className = "time-slot" + (isFull ? " ts-full" : "");
-    el.innerHTML = `<span class="ts-time">${time}</span>
+    // 用 data-time 儲存值，顯示文字單純用字串，避免瀏覽器誤把時間字串解析為日期物件
+    el.setAttribute("data-time", time);
+    el.innerHTML = `<span class="ts-time">${String(time)}</span>
       <span class="ts-cap ${capClass}">${capText}</span>`;
     if (!isFull) {
       el.onclick = () => {
@@ -754,7 +802,9 @@ function validatePage2() {
   const phone   = document.getElementById("phone").value.trim();
   const email   = document.getElementById("email").value.trim();
 
-  if (!plate)   { showErr("err-plate",   true); ok = false; } else showErr("err-plate",   false);
+  const vin     = document.getElementById("vin").value.trim();
+  if (!plate)           { showErr("err-plate",   true); ok = false; } else showErr("err-plate",   false);
+  if (vin.length !== 17){ showErr("err-vin",     true); ok = false; } else showErr("err-vin",     false);
   if (!contact) { showErr("err-contact", true); ok = false; } else showErr("err-contact", false);
   if (!phone)   { showErr("err-phone",   true); ok = false; } else showErr("err-phone",   false);
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -768,6 +818,7 @@ function validatePage2() {
   document.getElementById("sum-date").textContent     = `${y} 年 ${m} 月 ${d} 日`;
   document.getElementById("sum-time").textContent     = selectedTime;
   document.getElementById("sum-plate").textContent    = plate;
+  document.getElementById("sum-vin").textContent      = document.getElementById("vin").value.trim();
   document.getElementById("sum-contact").textContent  = contact;
   document.getElementById("sum-phone").textContent    = phone;
   document.getElementById("sum-email").textContent    = email || "（未填）";
@@ -777,7 +828,7 @@ function validatePage2() {
 
   if (IS_STAFF) {
     document.getElementById("sum-noncontract").textContent =
-      document.getElementById("non-contract").checked ? "是" : "否";
+      contractState === "contract" ? "有合約" : contractState === "noncontract" ? "非合約" : "（未選）";
   }
 
   // 名額徽章
@@ -817,13 +868,14 @@ async function submitBooking() {
     date:        document.getElementById("appt-date").value,
     time:        selectedTime,
     plate:       document.getElementById("plate").value.trim().toUpperCase(),
+    vin:         document.getElementById("vin").value.trim().toUpperCase(),
     contact:     document.getElementById("contact").value.trim(),
     phone:       document.getElementById("phone").value.trim(),
     email:       document.getElementById("email").value.trim(),
     notes:       document.getElementById("notes").value.trim(),
     category:    selectedCategory,
     insurer:     document.getElementById("insurer").value,
-    nonContract: IS_STAFF ? document.getElementById("non-contract").checked : false,
+    contractState: IS_STAFF ? contractState : "",
   };
 
   try {
@@ -859,13 +911,17 @@ function resetAll() {
   selectedTime     = "";
   selectedCategory = "";
   currentAvail     = {};
-  ["plate","contact","phone","email","notes"].forEach(id => {
+  ["plate","vin","contact","phone","email","notes"].forEach(id => {
     document.getElementById(id).value = "";
   });
   document.getElementById("appt-date").value = "";
   document.getElementById("date-closed").style.display = "none";
   document.getElementById("insurer").value = "";
-  if (IS_STAFF) document.getElementById("non-contract").checked = false;
+  if (IS_STAFF) {
+    contractState = "";
+    document.getElementById("btn-contract").classList.remove("sel-contract","sel-noncontract");
+    document.getElementById("btn-noncontract").classList.remove("sel-contract","sel-noncontract");
+  }
   document.getElementById("submit-btn").disabled = false;
   document.getElementById("submit-btn").textContent = "確認送出預約";
   document.getElementById("alert-full").classList.remove("show");
