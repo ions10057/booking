@@ -11,7 +11,7 @@
        ══════════════════════════════════════ -->
   <script>
   const APP_CONFIG = {
-    SCRIPT_URL:      "https://script.google.com/macros/s/AKfycbxMplmT-PvDif9kHvBwRTH79ojtock75AW8_xdvDcN931WJs7cHQcWKJP_NLA4QZdc6/exec",
+    SCRIPT_URL:      "https://script.google.com/macros/s/AKfycbw_Gd4WLmbCs6ElbyZKQRF92-ALQsMw24fWvWhg5JhIN2oGqNNoUyuM6h_WwTZ5VHiu/exec",
     SHOP_NAME:       "裕登",
     SHOP_SUBTITLE:   "特斯拉授權鈑噴中心 及 輪胎服務中心",
     STAFF_LABEL:     "員工模式",
@@ -779,24 +779,49 @@ function selectContract(type) {
 //    徹底防止 Chrome 把 "09:00" 解析成 Date 物件
 // ══════════════════════════════════════════════════════════
 
+/** 把 "09:00" 轉成兩個獨立 DOM 節點顯示，完全杜絕瀏覽器日期解析
+ *  顯示效果：09:00（外觀完全正常）
+ *  原理：把時和分拆成兩個 textNode，中間放一個純文字冒號節點
+ *        瀏覽器永遠不會把三個獨立 textNode 合併解析為 Date */
+function safeTimeDisplay(container, rawTime) {
+  // rawTime 格式："09:00" 或 "13:30"
+  const parts = String(rawTime).split(":");
+  const hh = parts[0] || "";
+  const mm = parts[1] || "";
+
+  const spanH = document.createElement("span");
+  spanH.textContent = hh;           // "09"
+
+  const spanColon = document.createElement("span");
+  spanColon.textContent = ":";      // ":"（普通冒號，不會被解析）
+  spanColon.setAttribute("aria-hidden", "true");
+
+  const spanM = document.createElement("span");
+  spanM.textContent = mm;           // "00"
+
+  container.appendChild(spanH);
+  container.appendChild(spanColon);
+  container.appendChild(spanM);
+}
+
 /** 建立一個時段 DOM 元素 */
-function makeTimeSlotEl(timeStr, capText, capClass, isFull, isLoading) {
+function makeTimeSlotEl(rawTime, capText, capClass, isFull, isLoading) {
   const el = document.createElement("div");
   el.className = "time-slot"
     + (isFull    ? " ts-full"    : "")
     + (isLoading ? " ts-loading" : "");
 
-  // 時間文字：用 textContent，不用 innerHTML
-  const tSpan = document.createElement("b");
-  tSpan.className   = "ts-time";
-  tSpan.textContent = timeStr;   // ← 純文字，永遠不會被解析為 Date
+  // 時間顯示：拆成獨立 span 節點，瀏覽器絕對無法解析為 Date
+  const tWrap = document.createElement("b");
+  tWrap.className = "ts-time";
+  safeTimeDisplay(tWrap, rawTime);
 
   // 名額文字
   const cSpan = document.createElement("span");
   cSpan.className   = "ts-cap" + (capClass ? " " + capClass : "");
   cSpan.textContent = capText;
 
-  el.appendChild(tSpan);
+  el.appendChild(tWrap);
   el.appendChild(cSpan);
   return el;
 }
@@ -823,6 +848,7 @@ function renderTimeSlotsLoading() {
   grid.innerHTML = "";
   slotSettings.forEach(({ time }) => {
     const el = makeTimeSlotEl(time, "查詢中", "", false, true);
+    el.dataset.time = time;
     grid.appendChild(el);
   });
 }
@@ -839,21 +865,22 @@ function renderTimeSlots(slots, avail) {
 
     let capText = "", capClass = "";
     if (info) {
-      if (isFull)            { capText = "已額滿";           capClass = "cap-none"; }
-      else if (remaining===1){ capText = "剩 1 台";          capClass = "cap-few";  }
-      else                   { capText = "剩 " + remaining + " 台"; capClass = "cap-ok";  }
+      if (isFull)            { capText = "已額滿";                    capClass = "cap-none"; }
+      else if (remaining===1){ capText = "剩 1 台";                   capClass = "cap-few";  }
+      else                   { capText = "剩 " + remaining + " 台";  capClass = "cap-ok";   }
     } else {
       capText  = "上限 " + capacity + " 台";
       capClass = "";
     }
 
     const el = makeTimeSlotEl(time, capText, capClass, isFull, false);
+    el.dataset.time = time;   // 原始值備查
 
     if (!isFull) {
       el.onclick = () => {
         document.querySelectorAll(".time-slot").forEach(t => t.classList.remove("ts-selected"));
         el.classList.add("ts-selected");
-        selectedTime = time;
+        selectedTime = time;   // 送出用原始值
         showErr("err-time", false);
       };
     }
