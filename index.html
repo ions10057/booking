@@ -2,31 +2,36 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
   <title>裕登特斯拉授權服務中心 — 線上預約</title>
   <meta name="description" content="裕登特斯拉授權鈑噴中心及輪胎服務中心線上預約系統" />
+  <meta name="theme-color" content="#1a1a2e" />
 
   <!-- ══════════════════════════════════════
        【設定區】只需修改這裡
        ══════════════════════════════════════ -->
   <script>
   const APP_CONFIG = {
-    SCRIPT_URL:      "https://script.google.com/macros/s/AKfycbw_Gd4WLmbCs6ElbyZKQRF92-ALQsMw24fWvWhg5JhIN2oGqNNoUyuM6h_WwTZ5VHiu/exec",
+    SCRIPT_URL:      "https://script.google.com/macros/s/AKfycbzcEWhkoWAqjrADFE-VsG5M2-7bFN-sF71PduKgm62aQaTXBFKnnO7FVAnSSAVCoVDh/exec",
     SHOP_NAME:       "裕登",
     SHOP_SUBTITLE:   "特斯拉授權鈑噴中心 及 輪胎服務中心",
     STAFF_LABEL:     "員工模式",
-    CLOSED_WEEKDAYS: [0],   // 0=週日
-    MIN_DAYS_AHEAD:  1,
-    MAX_DAYS_AHEAD:  60,
+    CLOSED_WEEKDAYS: [0],    // 0=週日休息
+    MIN_DAYS_AHEAD:  1,      // 最早明天
+    MAX_DAYS_AHEAD:  60,     // 最遠60天後
     FALLBACK_SERVICES: [
       { name:"鈑噴維修",       desc:"車身鈑金、烤漆、碰撞修復" },
       { name:"輪胎更換及定位", desc:"四輪更換、四輪定位校正"   },
     ],
+    // ★ 時段格式：hour 和 minute 分開存，完全避免瀏覽器把字串解析成 Date
     FALLBACK_TIMES: [
-      { time:"09:00", capacity:2 }, { time:"10:00", capacity:2 },
-      { time:"11:00", capacity:2 }, { time:"13:30", capacity:2 },
-      { time:"14:30", capacity:2 }, { time:"15:30", capacity:2 },
-      { time:"16:30", capacity:1 },
+      { hour:9,  minute:0,  label:"09:00", capacity:2 },
+      { hour:10, minute:0,  label:"10:00", capacity:2 },
+      { hour:11, minute:0,  label:"11:00", capacity:2 },
+      { hour:13, minute:30, label:"13:30", capacity:2 },
+      { hour:14, minute:30, label:"14:30", capacity:2 },
+      { hour:15, minute:30, label:"15:30", capacity:2 },
+      { hour:16, minute:30, label:"16:30", capacity:1 },
     ],
     FALLBACK_CATEGORIES: [
       { name:"理賠", desc:"保險理賠", publicVisible:true  },
@@ -44,218 +49,307 @@
     *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
 
     :root {
-      --gold:#e8b800;  --gold-d:#c9a000;  --gold-bg:rgba(232,184,0,.08);
+      --gold:#e8b800; --gold-d:#c9a000; --gold-bg:rgba(232,184,0,.09);
       --navy:#1a1a2e;
       --staff:#6c47d9; --staff-bg:rgba(108,71,217,.07);
-      --text:#1c1c1e;  --muted:#6e6e73;   --hint:#aeaeb2;
-      --bg:#f5f5f7;    --surface:#ffffff; --s2:#f9f9f9;
+      --text:#1c1c1e;  --muted:#6e6e73; --hint:#aeaeb2;
+      --bg:#f5f5f7; --surface:#fff; --s2:#f9f9f9;
       --border:rgba(0,0,0,.08); --border2:rgba(0,0,0,.15);
       --ok:#34c759; --warn:#ff9500; --danger:#ff3b30;
-      --r:14px; --rs:9px;
+      --r:14px; --rs:10px;
       --shadow:0 1px 4px rgba(0,0,0,.07);
+      /* 觸控目標最小高度 */
+      --touch:48px;
     }
     @media(prefers-color-scheme:dark){
       :root{
         --text:#f0f0f0; --muted:#98989d; --hint:#636366;
-        --bg:#0e0e0f;   --surface:#1c1c1e; --s2:#2c2c2e;
+        --bg:#0e0e0f; --surface:#1c1c1e; --s2:#2c2c2e;
         --border:rgba(255,255,255,.08); --border2:rgba(255,255,255,.15);
-        --shadow:0 1px 4px rgba(0,0,0,.3);
+        --shadow:0 1px 4px rgba(0,0,0,.35);
       }
     }
-
-    html { scroll-behavior:smooth; }
+    html { scroll-behavior:smooth; -webkit-text-size-adjust:100%; }
     body {
       font-family:-apple-system,"PingFang TC","Microsoft JhengHei","Noto Sans TC",sans-serif;
       background:var(--bg); color:var(--text); min-height:100vh;
       -webkit-font-smoothing:antialiased;
     }
 
-    /* ── Header ─────────────────────────────────── */
-    .app-header { background:var(--navy); position:sticky; top:0; z-index:200; border-bottom:1px solid rgba(255,255,255,.06); }
+    /* ── Header ──────────────────────────────────── */
+    .app-header {
+      background:var(--navy); position:sticky; top:0; z-index:200;
+      border-bottom:1px solid rgba(255,255,255,.06);
+    }
     .app-header.staff-mode { background:#2a1a4e; }
-    .header-inner { max-width:640px; margin:0 auto; padding:12px 20px; display:flex; align-items:center; gap:12px; }
-    .h-logo { width:36px; height:36px; background:var(--gold); border-radius:9px; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:15px; color:var(--navy); flex-shrink:0; }
+    .header-inner {
+      max-width:640px; margin:0 auto; padding:12px 18px;
+      display:flex; align-items:center; gap:11px;
+    }
+    .h-logo {
+      width:36px; height:36px; background:var(--gold); border-radius:9px;
+      display:flex; align-items:center; justify-content:center;
+      font-weight:700; font-size:15px; color:var(--navy); flex-shrink:0;
+    }
     .app-header.staff-mode .h-logo { background:var(--staff); color:#fff; }
-    .h-text h1 { font-size:13px; font-weight:600; color:#fff; line-height:1.35; }
+    .h-text h1 { font-size:13px; font-weight:600; color:#fff; line-height:1.3; }
     .h-text p  { font-size:10px; color:rgba(255,255,255,.4); margin-top:1px; }
-    .staff-badge { margin-left:auto; display:none; background:var(--staff); color:#fff; font-size:10px; font-weight:600; padding:3px 10px; border-radius:20px; white-space:nowrap; }
+    .staff-badge {
+      margin-left:auto; display:none;
+      background:var(--staff); color:#fff;
+      font-size:10px; font-weight:600; padding:4px 10px;
+      border-radius:20px; white-space:nowrap;
+    }
     .staff-mode .staff-badge { display:inline-block; }
 
-    /* ── Layout ─────────────────────────────────── */
-    .main { max-width:640px; margin:0 auto; padding:20px 16px 80px; }
+    /* ── Layout ──────────────────────────────────── */
+    .main { max-width:640px; margin:0 auto; padding:16px 14px 80px; }
 
-    /* ── Step bar ────────────────────────────────── */
-    .step-bar { display:flex; background:var(--surface); border-radius:var(--r); border:.5px solid var(--border); padding:14px 16px; margin-bottom:16px; box-shadow:var(--shadow); }
-    .step-item { flex:1; display:flex; flex-direction:column; align-items:center; gap:5px; position:relative; }
-    .step-item:not(:last-child)::after { content:''; position:absolute; top:13px; left:calc(50% + 15px); right:calc(-50% + 15px); height:1.5px; background:var(--border); transition:background .3s; }
+    /* ── Step bar ─────────────────────────────────── */
+    .step-bar {
+      display:flex; background:var(--surface);
+      border-radius:var(--r); border:.5px solid var(--border);
+      padding:12px 14px; margin-bottom:14px; box-shadow:var(--shadow);
+    }
+    .step-item { flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; position:relative; }
+    .step-item:not(:last-child)::after {
+      content:''; position:absolute; top:12px;
+      left:calc(50% + 14px); right:calc(-50% + 14px);
+      height:1.5px; background:var(--border); transition:background .3s;
+    }
     .step-item.done:not(:last-child)::after { background:var(--gold); }
-    .step-dot { width:26px; height:26px; border-radius:50%; border:1.5px solid var(--border2); background:var(--bg); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:var(--hint); transition:all .3s; }
+    .step-dot {
+      width:24px; height:24px; border-radius:50%;
+      border:1.5px solid var(--border2); background:var(--bg);
+      display:flex; align-items:center; justify-content:center;
+      font-size:11px; font-weight:700; color:var(--hint); transition:all .3s;
+    }
     .step-item.active .step-dot { background:var(--gold); border-color:var(--gold); color:var(--navy); }
     .step-item.done   .step-dot { background:var(--navy); border-color:var(--navy); color:#fff; font-size:10px; }
     .step-label { font-size:10px; color:var(--hint); transition:color .3s; white-space:nowrap; }
     .step-item.active .step-label { color:var(--gold); font-weight:600; }
     .step-item.done   .step-label { color:var(--muted); }
 
-    /* ── Card ────────────────────────────────────── */
-    .card { background:var(--surface); border-radius:var(--r); border:.5px solid var(--border); padding:18px 20px; margin-bottom:12px; box-shadow:var(--shadow); }
-    .card-label { font-size:11px; font-weight:600; color:var(--hint); letter-spacing:.9px; text-transform:uppercase; margin-bottom:14px; }
+    /* ── Card ─────────────────────────────────────── */
+    .card {
+      background:var(--surface); border-radius:var(--r);
+      border:.5px solid var(--border); padding:16px 18px;
+      margin-bottom:12px; box-shadow:var(--shadow);
+    }
+    .card-label {
+      font-size:11px; font-weight:600; color:var(--hint);
+      letter-spacing:.8px; text-transform:uppercase; margin-bottom:14px;
+    }
     .req { color:var(--gold); margin-left:2px; }
-    .staff-tag { display:inline-block; background:var(--staff-bg); color:var(--staff); font-size:10px; padding:1px 7px; border-radius:10px; margin-left:6px; font-weight:600; vertical-align:middle; }
+    .opt { color:var(--hint); font-size:10px; margin-left:4px; font-weight:400; text-transform:none; letter-spacing:0; }
+    .staff-tag {
+      display:inline-block; background:var(--staff-bg); color:var(--staff);
+      font-size:10px; padding:1px 7px; border-radius:10px;
+      margin-left:6px; font-weight:600; vertical-align:middle;
+    }
     @media(prefers-color-scheme:dark){ .staff-tag { color:#a78bfa; } }
 
-    /* ── Service options ─────────────────────────── */
+    /* ── Service options ──────────────────────────── */
     .svc-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-    .svc-opt { border:1.5px solid var(--border2); border-radius:var(--rs); padding:14px 12px 12px; cursor:pointer; transition:border-color .18s, background .18s; position:relative; user-select:none; }
+    .svc-opt {
+      border:1.5px solid var(--border2); border-radius:var(--rs);
+      padding:14px 12px 12px; cursor:pointer;
+      transition:border-color .18s, background .18s;
+      position:relative; user-select:none;
+      min-height:var(--touch);
+    }
     .svc-opt:hover { border-color:var(--gold); }
     .svc-opt.selected { border-color:var(--gold); background:var(--gold-bg); }
-    .svc-check { position:absolute; top:8px; right:8px; width:17px; height:17px; border-radius:50%; background:var(--gold); display:none; align-items:center; justify-content:center; font-size:9px; font-weight:700; color:var(--navy); }
+    .svc-check {
+      position:absolute; top:8px; right:8px;
+      width:18px; height:18px; border-radius:50%;
+      background:var(--gold);
+      display:none; align-items:center; justify-content:center;
+      font-size:10px; font-weight:700; color:var(--navy);
+    }
     .svc-opt.selected .svc-check { display:flex; }
     .svc-icon { font-size:22px; margin-bottom:7px; display:block; }
-    .svc-name { font-size:13px; font-weight:600; color:var(--text); }
-    .svc-desc { font-size:11px; color:var(--muted); margin-top:3px; }
+    .svc-name { font-size:14px; font-weight:600; color:var(--text); line-height:1.3; }
+    .svc-desc { font-size:11px; color:var(--muted); margin-top:3px; line-height:1.4; }
 
-    /* ── Time grid ───────────────────────────────────
-       關鍵修正：不使用 innerHTML 注入時間文字
-       改用純 DOM API (createElement + textContent)
-       徹底防止 Chrome 把 "09:00" 解析為 Date 物件   */
-    .time-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
-
+    /* ══════════════════════════════════════════════
+       ★★ 時段格 ★★
+       關鍵設計：
+       1. data-h / data-m 屬性儲存小時和分鐘（純數字）
+       2. 顯示文字由 JS 直接用 padStart 組合，
+          絕對不會出現 "09:00" 這個可被解析的字串
+       3. 版面改為 3 欄（手機友善）
+    ══════════════════════════════════════════════ */
+    .time-grid {
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:10px;
+    }
     .time-slot {
-      border:1px solid var(--border2);
-      border-radius:var(--rs);
-      padding:11px 6px 10px;
-      text-align:center;
-      cursor:pointer;
+      border:1.5px solid var(--border2); border-radius:var(--rs);
+      padding:13px 6px 11px; text-align:center; cursor:pointer;
       transition:border-color .15s, background .15s;
-      user-select:none;
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-      gap:5px;
+      user-select:none; min-height:var(--touch);
+      display:flex; flex-direction:column; align-items:center; gap:6px;
     }
-    /* ts-time 用 <b> 標籤，不會被當 datetime 解析 */
     .ts-time {
-      font-size:14px;
-      font-weight:700;
-      color:var(--text);
+      font-size:17px; font-weight:700; line-height:1;
+      color:var(--text); letter-spacing:.5px;
       font-variant-numeric:tabular-nums;
-      line-height:1;
+      display:flex; align-items:center; gap:0;
     }
-    .ts-cap {
-      font-size:10px;
-      color:var(--hint);
-      line-height:1;
+    /* 冒號由 CSS 偽元素插入，DOM 裡完全沒有冒號字元 */
+    .ts-hh { }
+    .ts-hh::after {
+      content:":";
+      font-weight:700;
+      margin:0 1px;
     }
+    .ts-mm { }
+    .ts-cap { font-size:11px; color:var(--hint); line-height:1; }
     .ts-cap.cap-ok   { color:var(--ok);     }
     .ts-cap.cap-few  { color:var(--warn);   }
     .ts-cap.cap-none { color:var(--danger); }
 
-    .time-slot:hover:not(.ts-full):not(.ts-loading) { border-color:var(--gold); }
-    .time-slot:hover:not(.ts-full):not(.ts-loading) .ts-time { color:var(--gold); }
+    .time-slot:hover:not(.ts-full) { border-color:var(--gold); }
+    .time-slot:hover:not(.ts-full) .ts-time { color:var(--gold); }
     .time-slot.ts-selected { background:var(--gold); border-color:var(--gold); }
     .time-slot.ts-selected .ts-time { color:var(--navy); }
-    .time-slot.ts-selected .ts-cap  { color:rgba(26,26,46,.55); }
-    .time-slot.ts-full { background:var(--s2); opacity:.5; cursor:not-allowed; }
+    .time-slot.ts-selected .ts-cap  { color:rgba(26,26,46,.6); }
+    .time-slot.ts-full {
+      background:var(--s2); opacity:.45; cursor:not-allowed;
+    }
     .time-slot.ts-full .ts-time { color:var(--hint); }
+    @keyframes shimmer { 0%,100%{opacity:.35} 50%{opacity:.85} }
+    .time-slot.ts-loading { cursor:default; pointer-events:none; }
+    .time-slot.ts-loading .ts-time,
+    .time-slot.ts-loading .ts-cap { animation:shimmer 1.1s ease-in-out infinite; }
 
-    @keyframes pulse { 0%,100%{opacity:.35} 50%{opacity:.9} }
-    .time-slot.ts-loading { cursor:default; }
-    .time-slot.ts-loading .ts-time { animation:pulse 1.1s ease-in-out infinite; }
-    .time-slot.ts-loading .ts-cap  { animation:pulse 1.1s ease-in-out infinite; }
-
-    /* ── Availability bar ────────────────────────── */
-    .avail-bar { display:none; align-items:center; gap:8px; margin-top:12px; padding:9px 13px; border-radius:var(--rs); border:.5px solid var(--border); background:var(--s2); font-size:12px; color:var(--muted); }
+    /* ── Availability bar ─────────────────────────── */
+    .avail-bar {
+      display:none; align-items:center; gap:8px;
+      margin-top:12px; padding:9px 12px; border-radius:var(--rs);
+      border:.5px solid var(--border); background:var(--s2);
+      font-size:12px; color:var(--muted);
+    }
     .avail-bar.show { display:flex; }
     .avail-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
-    .avail-bar.ab-ok   { background:rgba(52,199,89,.08);  border-color:rgba(52,199,89,.2);  color:#1c5c2e; }
-    .avail-bar.ab-ok   .avail-dot { background:var(--ok);     }
-    .avail-bar.ab-warn { background:rgba(255,149,0,.08);  border-color:rgba(255,149,0,.2);  color:#7a4800; }
-    .avail-bar.ab-warn .avail-dot { background:var(--warn);   }
-    .avail-bar.ab-full { background:rgba(255,59,48,.08);  border-color:rgba(255,59,48,.2);  color:#c0392b; }
+    .avail-bar.ab-ok   { background:rgba(52,199,89,.08); border-color:rgba(52,199,89,.2); color:#1c5c2e; }
+    .avail-bar.ab-ok   .avail-dot { background:var(--ok); }
+    .avail-bar.ab-warn { background:rgba(255,149,0,.08); border-color:rgba(255,149,0,.2); color:#7a4800; }
+    .avail-bar.ab-warn .avail-dot { background:var(--warn); }
+    .avail-bar.ab-full { background:rgba(255,59,48,.08); border-color:rgba(255,59,48,.2); color:#c0392b; }
     .avail-bar.ab-full .avail-dot { background:var(--danger); }
     @media(prefers-color-scheme:dark){
-      .avail-bar.ab-ok   { color:#52d66c; }
-      .avail-bar.ab-warn { color:#ffa733; }
-      .avail-bar.ab-full { color:#ff7b7b; }
+      .avail-bar.ab-ok  { color:#52d66c; }
+      .avail-bar.ab-warn{ color:#ffa733; }
+      .avail-bar.ab-full{ color:#ff7b7b; }
     }
 
-    /* ── Category pills ──────────────────────────── */
+    /* ── Category pills ───────────────────────────── */
     .cat-grid { display:flex; flex-wrap:wrap; gap:8px; }
-    .cat-opt { border:1.5px solid var(--border2); border-radius:30px; padding:7px 18px; cursor:pointer; font-size:13px; font-weight:500; color:var(--text); transition:all .15s; user-select:none; white-space:nowrap; }
+    .cat-opt {
+      border:1.5px solid var(--border2); border-radius:30px;
+      padding:8px 18px; cursor:pointer;
+      font-size:14px; font-weight:500; color:var(--text);
+      transition:all .15s; user-select:none; white-space:nowrap;
+      min-height:var(--touch); display:flex; align-items:center;
+    }
     .cat-opt:hover { border-color:var(--gold); color:var(--gold); }
     .cat-opt.selected { background:var(--gold); border-color:var(--gold); color:var(--navy); }
     .cat-opt.staff-only { border-style:dashed; border-color:rgba(108,71,217,.4); color:var(--staff); }
     .cat-opt.staff-only:hover { border-color:var(--staff); background:var(--staff-bg); }
     .cat-opt.staff-only.selected { background:var(--staff); border-color:var(--staff); color:#fff; border-style:solid; }
-    .cat-none { display:inline-block; padding:7px 16px; font-size:13px; color:var(--hint); }
 
-    /* ── Form fields ─────────────────────────────── */
+    /* ── Form fields ──────────────────────────────── */
     .field { margin-bottom:14px; }
     .field:last-child { margin-bottom:0; }
-    .field label { display:block; font-size:13px; color:var(--muted); margin-bottom:6px; }
+    .field label { display:block; font-size:13px; color:var(--muted); margin-bottom:7px; }
     .field input, .field select, .field textarea {
-      width:100%; padding:11px 13px;
+      width:100%;
+      /* 手機 iOS 最小16px，防止自動縮放 */
+      padding:13px 14px;
       border:1px solid var(--border2); border-radius:var(--rs);
-      font-size:14px; font-family:inherit; color:var(--text); background:var(--s2);
+      font-size:16px; font-family:inherit; color:var(--text);
+      background:var(--s2);
       transition:border-color .15s, box-shadow .15s;
       -webkit-appearance:none; appearance:none;
+      min-height:var(--touch);
     }
     .field input:focus, .field select:focus, .field textarea:focus {
       outline:none; border-color:var(--gold);
-      box-shadow:0 0 0 3px rgba(232,184,0,.14); background:var(--surface);
+      box-shadow:0 0 0 3px rgba(232,184,0,.15); background:var(--surface);
     }
-    .field textarea  { min-height:82px; resize:vertical; }
-    .field .hint     { font-size:11px; color:var(--hint); margin-top:5px; }
-    .field-row       { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-    .field select    {
+    .field textarea { min-height:88px; resize:vertical; font-size:15px; }
+    .field .hint { font-size:11px; color:var(--hint); margin-top:6px; line-height:1.5; }
+    .field-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    .field select {
       background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23aeaeb2' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
-      background-repeat:no-repeat; background-position:right 12px center; padding-right:36px; cursor:pointer;
+      background-repeat:no-repeat; background-position:right 14px center;
+      padding-right:40px; cursor:pointer;
     }
-    .vin-field { font-family:'SF Mono','Menlo','Courier New',monospace !important; letter-spacing:1.5px; }
+    .vin-field {
+      font-family:'SF Mono','Menlo','Courier New',monospace !important;
+      letter-spacing:2px; font-size:15px !important;
+    }
 
-    /* ── Contract toggle ─────────────────────────── */
-    .contract-toggle { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+    /* ── Contract toggle ──────────────────────────── */
+    .contract-toggle { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
     .contract-btn {
       border:1.5px solid var(--border2); border-radius:var(--rs);
-      padding:13px 8px; text-align:center; cursor:pointer;
-      font-size:14px; font-weight:600; color:var(--muted);
+      padding:14px 8px; text-align:center; cursor:pointer;
+      font-size:15px; font-weight:600; color:var(--muted);
       background:var(--s2); transition:all .18s; user-select:none;
+      min-height:var(--touch); display:flex; flex-direction:column;
+      align-items:center; justify-content:center; gap:4px;
     }
-    .contract-btn .cb-icon { display:block; font-size:20px; margin-bottom:5px; }
+    .contract-btn .cb-icon { font-size:20px; }
     .contract-btn:hover { border-color:var(--gold); color:var(--gold); }
     .contract-btn.sel-contract    { background:var(--ok);    border-color:var(--ok);    color:#fff; }
     .contract-btn.sel-noncontract { background:var(--staff); border-color:var(--staff); color:#fff; }
-    .contract-btn.sel-contract:hover,
-    .contract-btn.sel-noncontract:hover { opacity:.9; }
 
-    /* ── Error ───────────────────────────────────── */
-    .err { font-size:11px; color:var(--danger); margin-top:5px; display:none; }
-
-    /* ── Alert box ───────────────────────────────── */
-    .alert-box { display:none; padding:12px 14px; border-radius:var(--rs); font-size:13px; line-height:1.6; margin-bottom:12px; }
+    /* ── Errors / Alerts ──────────────────────────── */
+    .err { font-size:12px; color:var(--danger); margin-top:6px; display:none; }
+    .alert-box { display:none; padding:13px 15px; border-radius:var(--rs); font-size:14px; line-height:1.6; margin-bottom:12px; }
     .alert-box.show { display:block; }
     .alert-box.alert-full { background:rgba(255,59,48,.08); border:1px solid rgba(255,59,48,.25); color:#c0392b; }
     .alert-box.alert-few  { background:rgba(255,149,0,.08); border:1px solid rgba(255,149,0,.25); color:#7a4800; }
-    .alert-box strong { display:block; margin-bottom:3px; font-size:14px; }
+    .alert-box strong { display:block; margin-bottom:3px; font-size:15px; }
     @media(prefers-color-scheme:dark){
       .alert-box.alert-full { color:#ff7b7b; }
       .alert-box.alert-few  { color:#ffa733; }
     }
 
-    /* ── Info box ────────────────────────────────── */
-    .info-box { background:var(--s2); border:.5px solid var(--border); border-left:3px solid var(--gold); border-radius:var(--rs); padding:11px 14px; font-size:12px; color:var(--muted); line-height:1.7; margin-bottom:12px; }
+    /* ── Info box ─────────────────────────────────── */
+    .info-box {
+      background:var(--s2); border:.5px solid var(--border);
+      border-left:3px solid var(--gold); border-radius:var(--rs);
+      padding:11px 14px; font-size:13px; color:var(--muted);
+      line-height:1.7; margin-bottom:12px;
+    }
     .info-box.staff-info { border-left-color:var(--staff); }
-    .info-box strong { color:var(--text); }
+    .info-box strong { color:var(--text); display:block; margin-bottom:3px; }
 
-    /* ── Offline banner ──────────────────────────── */
-    .offline-banner { display:none; background:rgba(255,149,0,.1); border:.5px solid rgba(255,149,0,.3); border-radius:var(--rs); padding:9px 14px; font-size:12px; color:#7a4800; margin-bottom:12px; }
+    /* ── Offline ──────────────────────────────────── */
+    .offline-banner {
+      display:none; background:rgba(255,149,0,.1);
+      border:.5px solid rgba(255,149,0,.3); border-radius:var(--rs);
+      padding:10px 14px; font-size:13px; color:#7a4800; margin-bottom:12px;
+    }
     .offline-banner.show { display:block; }
     @media(prefers-color-scheme:dark){ .offline-banner { color:#ffa733; } }
 
-    /* ── Summary block ───────────────────────────── */
-    .summary-block { background:var(--navy); border-radius:var(--r); padding:18px 20px; margin-bottom:12px; }
-    .sum-title { font-size:10px; color:rgba(255,255,255,.35); letter-spacing:.9px; text-transform:uppercase; margin-bottom:14px; }
-    .sum-row { display:flex; justify-content:space-between; align-items:baseline; padding:7px 0; gap:14px; border-bottom:.5px solid rgba(255,255,255,.07); }
+    /* ── Summary ──────────────────────────────────── */
+    .summary-block {
+      background:var(--navy); border-radius:var(--r);
+      padding:18px 18px; margin-bottom:12px;
+    }
+    .sum-title { font-size:10px; color:rgba(255,255,255,.35); letter-spacing:.8px; text-transform:uppercase; margin-bottom:14px; }
+    .sum-row {
+      display:flex; justify-content:space-between;
+      align-items:baseline; padding:8px 0; gap:14px;
+      border-bottom:.5px solid rgba(255,255,255,.07);
+    }
     .sum-row:last-child { border-bottom:none; }
     .sum-k { font-size:12px; color:rgba(255,255,255,.4); flex-shrink:0; }
     .sum-v { font-size:13px; color:#fff; font-weight:500; text-align:right; word-break:break-all; }
@@ -263,9 +357,14 @@
     .cap-badge-few  { font-size:11px; color:#ffa733; margin-left:5px; }
     .cap-badge-full { font-size:11px; color:#ff6b6b; margin-left:5px; }
 
-    /* ── Buttons ─────────────────────────────────── */
+    /* ── Buttons ──────────────────────────────────── */
     .btn-row { display:flex; gap:10px; margin-top:4px; }
-    .btn { flex:1; padding:14px; border-radius:var(--rs); font-size:14px; font-weight:600; cursor:pointer; border:none; transition:all .15s; font-family:inherit; }
+    .btn {
+      flex:1; padding:15px; border-radius:var(--rs);
+      font-size:15px; font-weight:600; cursor:pointer; border:none;
+      transition:all .15s; font-family:inherit;
+      min-height:var(--touch);
+    }
     .btn-primary { background:var(--gold); color:var(--navy); }
     .btn-primary:hover:not(:disabled) { background:var(--gold-d); }
     .btn-primary:active:not(:disabled) { transform:scale(.98); }
@@ -273,35 +372,62 @@
     .btn-ghost { background:transparent; color:var(--muted); border:1px solid var(--border2); }
     .btn-ghost:hover { background:var(--s2); }
 
-    /* ── Pages ───────────────────────────────────── */
+    /* ── Pages ────────────────────────────────────── */
     .page { display:none; }
     .page.active { display:block; animation:fadeIn .2s ease; }
     @keyframes fadeIn { from{opacity:0;transform:translateY(5px)} to{opacity:1;transform:none} }
 
-    /* ── Success ─────────────────────────────────── */
-    .success-wrap { background:var(--surface); border-radius:var(--r); border:.5px solid var(--border); padding:40px 24px 36px; text-align:center; box-shadow:var(--shadow); }
-    .ok-circle { width:70px; height:70px; border-radius:50%; background:rgba(52,199,89,.1); border:2px solid var(--ok); display:flex; align-items:center; justify-content:center; font-size:30px; margin:0 auto 20px; }
+    /* ── Success ──────────────────────────────────── */
+    .success-wrap {
+      background:var(--surface); border-radius:var(--r);
+      border:.5px solid var(--border); padding:40px 20px 36px;
+      text-align:center; box-shadow:var(--shadow);
+    }
+    .ok-circle {
+      width:72px; height:72px; border-radius:50%;
+      background:rgba(52,199,89,.1); border:2px solid var(--ok);
+      display:flex; align-items:center; justify-content:center;
+      font-size:32px; margin:0 auto 20px;
+    }
     .success-wrap h2 { font-size:20px; font-weight:600; margin-bottom:8px; }
     .success-wrap p  { font-size:14px; color:var(--muted); line-height:1.7; }
 
-    /* ── Loading overlay ─────────────────────────── */
-    .loading-overlay { position:fixed; inset:0; background:rgba(0,0,0,.45); display:none; align-items:center; justify-content:center; z-index:999; }
+    /* ── Loading overlay ──────────────────────────── */
+    .loading-overlay {
+      position:fixed; inset:0; background:rgba(0,0,0,.5);
+      display:none; align-items:center; justify-content:center; z-index:999;
+    }
     .loading-overlay.show { display:flex; }
-    .loading-box { background:var(--surface); border-radius:var(--r); padding:28px 40px; text-align:center; box-shadow:0 8px 30px rgba(0,0,0,.2); }
-    .spinner { width:34px; height:34px; border:3px solid var(--border2); border-top-color:var(--gold); border-radius:50%; animation:spin .75s linear infinite; margin:0 auto 13px; }
+    .loading-box {
+      background:var(--surface); border-radius:var(--r);
+      padding:28px 36px; text-align:center;
+      box-shadow:0 8px 30px rgba(0,0,0,.2); width:220px;
+    }
+    .spinner {
+      width:36px; height:36px;
+      border:3px solid var(--border2); border-top-color:var(--gold);
+      border-radius:50%; animation:spin .75s linear infinite;
+      margin:0 auto 13px;
+    }
     @keyframes spin { to{transform:rotate(360deg)} }
-    .loading-box p { font-size:13px; color:var(--muted); }
+    .loading-box p { font-size:14px; color:var(--muted); }
 
-    @media(max-width:480px){
-      .svc-grid  { grid-template-columns:1fr; }
-      .time-grid { grid-template-columns:repeat(3,1fr); }
-      .field-row { grid-template-columns:1fr; gap:0; }
+    /* ── Mobile adjustments ───────────────────────── */
+    @media(max-width:520px){
+      .main { padding:12px 12px 80px; }
+      .svc-grid { grid-template-columns:1fr; }
+      .time-grid { grid-template-columns:repeat(3,1fr); gap:8px; }
+      .field-row { grid-template-columns:1fr; gap:10px; }
+      .ts-time { font-size:16px; }
+    }
+    @media(max-width:360px){
+      .time-grid { grid-template-columns:repeat(2,1fr); }
     }
   </style>
 </head>
 <body>
 
-<!-- ═══ Header ═══════════════════════════════════════ -->
+<!-- ═══ Header ══════════════════════════════════════ -->
 <header class="app-header" id="app-header">
   <div class="header-inner">
     <div class="h-logo" id="h-initial">裕</div>
@@ -313,11 +439,11 @@
   </div>
 </header>
 
-<!-- ═══ Loading overlay ══════════════════════════════ -->
+<!-- ═══ Loading ══════════════════════════════════════ -->
 <div class="loading-overlay" id="loading">
   <div class="loading-box">
     <div class="spinner"></div>
-    <p id="loading-text">處理中，請稍候...</p>
+    <p id="loading-text">處理中...</p>
   </div>
 </div>
 
@@ -327,7 +453,7 @@
   <div class="step-bar" id="step-bar">
     <div class="step-item active" id="step1">
       <div class="step-dot">1</div>
-      <span class="step-label">服務 &amp; 時段</span>
+      <span class="step-label">服務&amp;時段</span>
     </div>
     <div class="step-item" id="step2">
       <div class="step-dot">2</div>
@@ -339,21 +465,18 @@
     </div>
   </div>
 
-  <!-- 離線提示 -->
   <div class="offline-banner" id="offline-banner">
-    ⚠️ 目前使用備用模式（無法連線到伺服器），選項可能不是最新狀態。
+    ⚠️ 目前使用備用模式，選項可能不是最新狀態。
   </div>
 
-  <!-- ════════════════════════════════════════════════
-       Page 1：服務項目 & 預約時段
-       ════════════════════════════════════════════════ -->
+  <!-- ════════════════ Page 1 ════════════════ -->
   <div class="page active" id="page1">
 
     <div class="card">
       <div class="card-label">服務項目<span class="req">*</span></div>
       <div class="svc-grid" id="svc-grid">
-        <div style="grid-column:1/-1;padding:20px;text-align:center;font-size:13px;color:var(--hint)">
-          讀取服務項目中...
+        <div style="grid-column:1/-1;padding:16px;text-align:center;font-size:13px;color:var(--hint)">
+          讀取中...
         </div>
       </div>
       <div class="err" id="err-service">請選擇服務項目</div>
@@ -364,13 +487,19 @@
       <div class="field">
         <input type="date" id="appt-date" onchange="onDateChange()" />
         <div class="err" id="err-date">請選擇日期</div>
-        <div id="date-closed" style="display:none;font-size:11px;color:var(--danger);margin-top:5px">
+        <div id="date-closed" style="display:none;font-size:12px;color:var(--danger);margin-top:6px">
           此日期為休息日，請選擇其他日期
         </div>
       </div>
 
-      <div class="card-label" style="margin-top:18px">預約時段<span class="req">*</span></div>
-      <!-- time-grid 內容全部由 JS DOM API 動態建立，不使用 innerHTML -->
+      <div class="card-label" style="margin-top:18px">
+        預約時段<span class="req">*</span>
+      </div>
+      <!--
+        ★ time-grid 由 JS 完全用 DOM API 建立
+        ★ 時間數字拆成 hour / minute 兩個獨立屬性，
+          用 padStart 組合顯示，永不出現可被解析的時間字串
+      -->
       <div class="time-grid" id="time-grid"></div>
       <div class="err" id="err-time">請選擇時段</div>
       <div class="avail-bar" id="avail-bar">
@@ -380,13 +509,13 @@
     </div>
 
     <div class="btn-row">
-      <button class="btn btn-primary" onclick="validatePage1()">下一步：填寫車輛資料 →</button>
+      <button class="btn btn-primary" onclick="validatePage1()">
+        下一步：填寫車輛資料 →
+      </button>
     </div>
   </div>
 
-  <!-- ════════════════════════════════════════════════
-       Page 2：車輛 & 聯絡資料
-       ════════════════════════════════════════════════ -->
+  <!-- ════════════════ Page 2 ════════════════ -->
   <div class="page" id="page2">
 
     <!-- 車輛資料 -->
@@ -395,20 +524,27 @@
 
       <div class="field">
         <label>車牌號碼<span class="req">*</span></label>
-        <input type="text" id="plate" placeholder="例：REB-3008"
-               oninput="this.value=this.value.toUpperCase()" autocomplete="off" />
+        <input type="text" id="plate"
+               placeholder="例：REB-3008"
+               inputmode="text"
+               autocomplete="off"
+               oninput="this.value=this.value.toUpperCase()" />
         <div class="err" id="err-plate">請輸入車牌號碼</div>
       </div>
 
+      <!-- VIN 改為選填 -->
       <div class="field">
-        <label>車輛 VIN 碼（17碼）<span class="req">*</span></label>
+        <label>
+          車輛 VIN 碼（17碼）<span class="opt">選填</span>
+        </label>
         <input type="text" id="vin" class="vin-field"
-               placeholder="17 位 VIN 碼" maxlength="17"
-               oninput="this.value=this.value.toUpperCase().replace(/[^A-HJ-NPR-Z0-9]/g,'');
-                        if(this.value.length===17) showErr('err-vin',false);"
-               autocomplete="off" />
-        <div class="hint">可於行照或前擋風玻璃左前沿查詢，共 17 碼，不含 I、O、Q</div>
-        <div class="err" id="err-vin">請輸入完整 17 碼 VIN（英文字母不含 I、O、Q）</div>
+               placeholder="選填：17 位 VIN 碼"
+               maxlength="17"
+               inputmode="text"
+               autocomplete="off"
+               oninput="this.value=this.value.toUpperCase().replace(/[^A-HJ-NPR-Z0-9]/g,'');" />
+        <div class="hint">可於行照或前擋風玻璃左前沿查詢，不含 I、O、Q</div>
+        <div class="err" id="err-vin">VIN 碼需填入完整 17 碼</div>
       </div>
     </div>
 
@@ -419,66 +555,84 @@
       <div class="field-row">
         <div class="field">
           <label>車主姓名<span class="req">*</span></label>
-          <input type="text" id="contact" placeholder="姓名" autocomplete="name" />
+          <input type="text" id="contact"
+                 placeholder="姓名"
+                 autocomplete="name"
+                 inputmode="text" />
           <div class="err" id="err-contact">請填寫姓名</div>
         </div>
         <div class="field">
           <label>聯絡電話<span class="req">*</span></label>
-          <input type="tel" id="phone" placeholder="09XX-XXXXXX" autocomplete="tel" />
+          <input type="tel" id="phone"
+                 placeholder="09XX-XXXXXX"
+                 autocomplete="tel"
+                 inputmode="tel" />
           <div class="err" id="err-phone">請填寫電話</div>
         </div>
       </div>
 
       <div class="field">
-        <label>Email（選填，可收確認信）</label>
-        <input type="email" id="email" placeholder="your@email.com" autocomplete="email" />
+        <label>Email<span class="opt">選填，可收確認信</span></label>
+        <input type="email" id="email"
+               placeholder="your@email.com"
+               autocomplete="email"
+               inputmode="email" />
         <div class="err" id="err-email">Email 格式不正確</div>
       </div>
 
       <div class="field">
-        <label>備註（選填）</label>
-        <textarea id="notes" placeholder="損傷部位、碰撞位置、特殊需求..."></textarea>
+        <label>備註<span class="opt">選填</span></label>
+        <textarea id="notes"
+                  placeholder="損傷部位、碰撞位置、特殊需求..."></textarea>
       </div>
     </div>
 
-    <!-- 類別區分（車主：僅公開選項；員工：全部） -->
+    <!-- 類別區分 -->
     <div class="card">
-      <div class="card-label" id="category-label">類別區分（選填）</div>
+      <div class="card-label" id="category-label">
+        類別區分<span class="opt">選填</span>
+      </div>
       <div class="cat-grid" id="cat-pills">
-        <span class="cat-none">讀取中...</span>
+        <span style="font-size:13px;color:var(--hint)">讀取中...</span>
       </div>
     </div>
 
-    <!-- 保險公司（車主與員工皆可填） -->
+    <!-- 保險公司（選填，車主與員工皆可） -->
     <div class="card">
-      <div class="card-label">保險公司（選填）</div>
+      <div class="card-label">
+        保險公司<span class="opt">選填</span>
+      </div>
       <div class="field">
         <select id="insurer">
-          <option value="">-- 請選擇保險公司 --</option>
+          <option value="">-- 請選擇保險公司（選填）--</option>
         </select>
       </div>
     </div>
 
-    <!-- 合約狀態（僅員工） -->
+    <!-- 合約狀態（員工專屬） -->
     <div class="card" id="contract-card" style="display:none">
-      <div class="card-label">合約狀態<span class="staff-tag">員工</span></div>
+      <div class="card-label">
+        合約狀態<span class="staff-tag">員工</span>
+      </div>
       <div class="contract-toggle">
-        <div class="contract-btn" id="btn-contract" onclick="selectContract('contract')">
+        <div class="contract-btn" id="btn-contract"
+             onclick="selectContract('contract')">
           <span class="cb-icon">✅</span>有合約
         </div>
-        <div class="contract-btn" id="btn-noncontract" onclick="selectContract('noncontract')">
+        <div class="contract-btn" id="btn-noncontract"
+             onclick="selectContract('noncontract')">
           <span class="cb-icon">🔖</span>非合約
         </div>
       </div>
-      <div style="margin-top:8px;font-size:11px;color:var(--hint)">點選後再點一次可取消</div>
+      <div style="margin-top:8px;font-size:11px;color:var(--hint)">
+        點選後再點一次可取消
+      </div>
     </div>
 
     <!-- 員工提示 -->
     <div class="info-box staff-info" id="staff-info-box" style="display:none">
-      <strong>員工模式提示</strong><br>
-      您正以員工身份代為填寫預約。<br>
-      「類別區分」中虛線框為員工專屬選項，車主看不到。<br>
-      「合約狀態」欄位僅員工可見。
+      <strong>員工模式提示</strong>
+      您正以員工身份代為填寫。虛線框選項為員工專屬，車主看不到。
     </div>
 
     <div class="btn-row">
@@ -487,9 +641,7 @@
     </div>
   </div>
 
-  <!-- ════════════════════════════════════════════════
-       Page 3：確認 & 送出
-       ════════════════════════════════════════════════ -->
+  <!-- ════════════════ Page 3 ════════════════ -->
   <div class="page" id="page3">
 
     <div class="summary-block">
@@ -503,10 +655,7 @@
         </span>
       </div>
       <div class="sum-row"><span class="sum-k">車牌號碼</span><span class="sum-v" id="sum-plate">—</span></div>
-      <div class="sum-row">
-        <span class="sum-k">VIN 碼</span>
-        <span class="sum-v" id="sum-vin" style="font-family:monospace;letter-spacing:.5px;font-size:12px">—</span>
-      </div>
+      <div class="sum-row"><span class="sum-k">VIN 碼</span><span class="sum-v" id="sum-vin" style="font-family:monospace;font-size:12px;letter-spacing:.5px">—</span></div>
       <div class="sum-row"><span class="sum-k">車主姓名</span><span class="sum-v" id="sum-contact">—</span></div>
       <div class="sum-row"><span class="sum-k">聯絡電話</span><span class="sum-v" id="sum-phone">—</span></div>
       <div class="sum-row"><span class="sum-k">Email</span><span class="sum-v" id="sum-email">—</span></div>
@@ -519,16 +668,15 @@
     </div>
 
     <div class="alert-box alert-full" id="alert-full">
-      <strong>⚠️ 此時段已額滿</strong>請返回修改，選擇其他時段。
+      <strong>⚠️ 此時段已額滿</strong>請返回選擇其他時段。
     </div>
     <div class="alert-box alert-few" id="alert-few">
       <strong>⚡ 此時段即將額滿</strong>目前僅剩最後 1 個名額，請盡快送出。
     </div>
 
     <div class="info-box">
-      <strong>📬 送出後的通知</strong><br>
-      系統自動發送 Email 通知店家，並同步發送 LINE 通知。<br>
-      我們將盡快以電話或 LINE 與您確認進廠時間。
+      <strong>📬 送出後的通知</strong>
+      系統將自動發送 Email 通知店家，我們會盡快以電話或 LINE 確認進廠時間。
     </div>
 
     <div class="btn-row">
@@ -537,19 +685,18 @@
     </div>
   </div>
 
-  <!-- ════════════════════════════════════════════════
-       Page Success
-       ════════════════════════════════════════════════ -->
+  <!-- ════════════════ Success ════════════════ -->
   <div class="page" id="page-success">
     <div class="success-wrap">
       <div class="ok-circle">✓</div>
       <h2>預約成功！</h2>
       <p>您的預約已送出。<br>我們將盡快以電話或 LINE 確認進廠時間。</p>
       <div class="info-box" style="margin-top:22px;text-align:left">
-        <strong>✅ 通知已發送</strong><br>
-        店家已收到 Email 通知。若您有填寫 Email，確認信也已同步寄出。
+        <strong>✅ 通知已發送</strong>
+        店家已收到通知。若您有填寫 Email，確認信也已同步寄出。
       </div>
-      <button class="btn btn-ghost" onclick="resetAll()" style="margin-top:12px;width:100%">
+      <button class="btn btn-ghost" onclick="resetAll()"
+              style="margin-top:14px;width:100%">
         重新填寫預約
       </button>
     </div>
@@ -560,34 +707,34 @@
 <script>
 "use strict";
 
-// ── 全域狀態 ──────────────────────────────────────────────
+// ─── 全域狀態 ──────────────────────────────────────────
 let IS_STAFF         = false;
 let STAFF_CODE_VAL   = "";
 let selectedService  = "";
-let selectedTime     = "";
+let selectedTime     = "";   // 儲存 label，例如 "09:00"
 let selectedCategory = "";
-let contractState    = "";    // "" | "contract" | "noncontract"
-let slotSettings     = [];
-let currentAvail     = {};
+let contractState    = "";   // "" | "contract" | "noncontract"
+let slotSettings     = [];   // [{ hour, minute, label, capacity }]
+let currentAvail     = {};   // { "09:00": { capacity, booked, remaining } }
 let isOffline        = false;
 let availTimer       = null;
 
-// ── 初始化 ────────────────────────────────────────────────
+// ─── 初始化 ────────────────────────────────────────────
 document.addEventListener("DOMContentLoaded", () => {
   document.title = APP_CONFIG.SHOP_NAME + " — 線上預約";
-  document.getElementById("h-name").textContent     = APP_CONFIG.SHOP_NAME + " " + APP_CONFIG.SHOP_SUBTITLE;
-  document.getElementById("h-initial").textContent  = APP_CONFIG.SHOP_NAME.charAt(0);
+  document.getElementById("h-name").textContent =
+    APP_CONFIG.SHOP_NAME + " " + APP_CONFIG.SHOP_SUBTITLE;
+  document.getElementById("h-initial").textContent = APP_CONFIG.SHOP_NAME.charAt(0);
   document.getElementById("staff-badge").textContent = APP_CONFIG.STAFF_LABEL;
 
   STAFF_CODE_VAL = new URLSearchParams(window.location.search).get("staff") || "";
 
-  // 初始顯示「請先選擇日期」提示
-  renderTimeSlotsEmpty();
   setDateConstraints();
+  renderTimeSlotsEmpty();
   loadSettings();
 });
 
-// ── 日期限制 ──────────────────────────────────────────────
+// ─── 日期限制 ───────────────────────────────────────────
 function setDateConstraints() {
   const el = document.getElementById("appt-date");
   el.min = fmtDate(addDays(new Date(), APP_CONFIG.MIN_DAYS_AHEAD));
@@ -596,15 +743,15 @@ function setDateConstraints() {
 function addDays(d, n) { const r = new Date(d); r.setDate(r.getDate() + n); return r; }
 function fmtDate(d) {
   return d.getFullYear() + "-"
-    + String(d.getMonth() + 1).padStart(2, "0") + "-"
-    + String(d.getDate()).padStart(2, "0");
+    + String(d.getMonth()+1).padStart(2,"0") + "-"
+    + String(d.getDate()).padStart(2,"0");
 }
 function isClosedDay(s) {
   if (!s) return false;
   return APP_CONFIG.CLOSED_WEEKDAYS.includes(new Date(s + "T12:00:00").getDay());
 }
 
-// ── 讀取設定 ──────────────────────────────────────────────
+// ─── 讀取設定 ───────────────────────────────────────────
 async function loadSettings() {
   try {
     const url  = APP_CONFIG.SCRIPT_URL + "?action=getSettings"
@@ -614,11 +761,15 @@ async function loadSettings() {
     const res  = await fetch(url, { signal: ctrl.signal });
     clearTimeout(tid);
     const data = await res.json();
-    if (!data.success) throw new Error(data.error || "getSettings failed");
+    if (!data.success) throw new Error(data.error || "failed");
 
-    IS_STAFF     = !!data.isStaff;
-    isOffline    = false;
-    slotSettings = data.timeSlots || [];
+    IS_STAFF  = !!data.isStaff;
+    isOffline = false;
+
+    // ★ 把 Apps Script 回傳的 time 字串（"09:00"）
+    //   轉換成 { hour, minute, label } 格式
+    //   之後顯示時永遠只用數字，不用字串
+    slotSettings = (data.timeSlots || []).map(s => parseTimeSlot(s));
 
     renderServices(data.services    || []);
     renderCategoryPills(data.categories || []);
@@ -629,20 +780,36 @@ async function loadSettings() {
     console.warn("Sheets 讀取失敗，使用備用：", e.message);
     isOffline    = true;
     IS_STAFF     = !!STAFF_CODE_VAL;
-    slotSettings = APP_CONFIG.FALLBACK_TIMES;
+    slotSettings = APP_CONFIG.FALLBACK_TIMES; // 已是 {hour,minute,label,capacity} 格式
 
     renderServices(APP_CONFIG.FALLBACK_SERVICES);
-    const cats = IS_STAFF
-      ? APP_CONFIG.FALLBACK_CATEGORIES
-      : APP_CONFIG.FALLBACK_CATEGORIES.filter(c => c.publicVisible);
-    renderCategoryPills(cats);
+    renderCategoryPills(
+      IS_STAFF
+        ? APP_CONFIG.FALLBACK_CATEGORIES
+        : APP_CONFIG.FALLBACK_CATEGORIES.filter(c => c.publicVisible)
+    );
     renderInsurerSelect(APP_CONFIG.FALLBACK_INSURERS);
     applyModeUI();
     document.getElementById("offline-banner").classList.add("show");
   }
 }
 
-// ── 員工模式 UI ───────────────────────────────────────────
+/**
+ * 把 Apps Script 回傳的時段資料統一轉成 { hour, minute, label, capacity }
+ * Apps Script 回傳格式：{ time:"09:00", capacity:2 }
+ * FALLBACK_TIMES 格式：  { hour:9, minute:0, label:"09:00", capacity:2 }
+ */
+function parseTimeSlot(s) {
+  if (typeof s.hour === "number") return s;   // 已是正確格式
+  // 從 "09:00" 字串解析
+  const parts  = String(s.time || "").split(":");
+  const hour   = parseInt(parts[0], 10) || 0;
+  const minute = parseInt(parts[1], 10) || 0;
+  const label  = String(s.time || "");
+  return { hour, minute, label, capacity: s.capacity || 2 };
+}
+
+// ─── 員工模式 UI ────────────────────────────────────────
 function applyModeUI() {
   if (!IS_STAFF) return;
   document.getElementById("app-header").classList.add("staff-mode");
@@ -659,35 +826,32 @@ function applyModeUI() {
   }
 }
 
-// ── 渲染服務選項 ──────────────────────────────────────────
+// ─── 渲染服務 ───────────────────────────────────────────
 const SVC_ICONS = ["🚗","⚙️","🔧","🛞","🔋","🪟","🧰"];
-
 function renderServices(services) {
   const grid = document.getElementById("svc-grid");
   grid.innerHTML = "";
   services.forEach((svc, i) => {
-    const wrap  = document.createElement("div");
+    const wrap = document.createElement("div");
     wrap.className = "svc-opt";
 
-    const chk  = document.createElement("div");
+    const chk = document.createElement("div");
     chk.className = "svc-check";
     chk.textContent = "✓";
 
     const icon = document.createElement("span");
-    icon.className   = "svc-icon";
+    icon.className = "svc-icon";
     icon.textContent = SVC_ICONS[i % SVC_ICONS.length];
 
     const name = document.createElement("div");
-    name.className   = "svc-name";
+    name.className = "svc-name";
     name.textContent = svc.name;
 
-    wrap.appendChild(chk);
-    wrap.appendChild(icon);
-    wrap.appendChild(name);
+    wrap.append(chk, icon, name);
 
     if (svc.desc) {
       const desc = document.createElement("div");
-      desc.className   = "svc-desc";
+      desc.className = "svc-desc";
       desc.textContent = svc.desc;
       wrap.appendChild(desc);
     }
@@ -702,48 +866,42 @@ function renderServices(services) {
   });
 }
 
-// ── 類別區分 Pills ────────────────────────────────────────
+// ─── 類別 Pills ─────────────────────────────────────────
 function renderCategoryPills(categories) {
-  const container = document.getElementById("cat-pills");
-  container.innerHTML = "";
+  const box = document.getElementById("cat-pills");
+  box.innerHTML = "";
   selectedCategory = "";
-
   if (!categories.length) {
-    const none = document.createElement("span");
-    none.className   = "cat-none";
-    none.textContent = "無可選類別";
-    container.appendChild(none);
+    const n = document.createElement("span");
+    n.style.cssText = "font-size:13px;color:var(--hint)";
+    n.textContent = "無可選類別";
+    box.appendChild(n);
     return;
   }
-
   categories.forEach(cat => {
     const el = document.createElement("div");
-    const isStaffOnly = IS_STAFF && !cat.publicVisible;
-    el.className   = "cat-opt" + (isStaffOnly ? " staff-only" : "");
+    const staffOnly = IS_STAFF && !cat.publicVisible;
+    el.className = "cat-opt" + (staffOnly ? " staff-only" : "");
     el.textContent = cat.desc || cat.name;
     el.dataset.value = cat.name;
-    if (isStaffOnly) el.title = "此選項僅員工可見";
-
+    if (staffOnly) el.title = "此選項僅員工可見";
     el.onclick = () => {
       if (selectedCategory === cat.name) {
-        el.classList.remove("selected");
-        selectedCategory = "";
-        return;
+        el.classList.remove("selected"); selectedCategory = ""; return;
       }
       document.querySelectorAll(".cat-opt").forEach(c => c.classList.remove("selected"));
-      el.classList.add("selected");
-      selectedCategory = cat.name;
+      el.classList.add("selected"); selectedCategory = cat.name;
     };
-    container.appendChild(el);
+    box.appendChild(el);
   });
 }
 
-// ── 保險公司下拉 ──────────────────────────────────────────
+// ─── 保險公司 ───────────────────────────────────────────
 function renderInsurerSelect(insurers) {
   const sel = document.getElementById("insurer");
   sel.innerHTML = "";
   const def = document.createElement("option");
-  def.value = ""; def.textContent = "-- 請選擇保險公司 --";
+  def.value = ""; def.textContent = "-- 請選擇保險公司（選填）--";
   sel.appendChild(def);
   insurers.forEach(name => {
     const opt = document.createElement("option");
@@ -752,144 +910,126 @@ function renderInsurerSelect(insurers) {
   });
 }
 
-// ── 合約狀態 ──────────────────────────────────────────────
+// ─── 合約狀態 ───────────────────────────────────────────
 function selectContract(type) {
   if (contractState === type) {
     contractState = "";
-    document.getElementById("btn-contract").classList.remove("sel-contract");
-    document.getElementById("btn-noncontract").classList.remove("sel-noncontract");
+    document.getElementById("btn-contract").classList.remove("sel-contract","sel-noncontract");
+    document.getElementById("btn-noncontract").classList.remove("sel-contract","sel-noncontract");
     return;
   }
   contractState = type;
-  if (type === "contract") {
-    document.getElementById("btn-contract").classList.add("sel-contract");
-    document.getElementById("btn-contract").classList.remove("sel-noncontract");
-    document.getElementById("btn-noncontract").classList.remove("sel-contract", "sel-noncontract");
-  } else {
-    document.getElementById("btn-noncontract").classList.add("sel-noncontract");
-    document.getElementById("btn-noncontract").classList.remove("sel-contract");
-    document.getElementById("btn-contract").classList.remove("sel-contract", "sel-noncontract");
-  }
+  const bc = document.getElementById("btn-contract");
+  const bn = document.getElementById("btn-noncontract");
+  bc.className = "contract-btn" + (type === "contract"    ? " sel-contract"    : "");
+  bn.className = "contract-btn" + (type === "noncontract" ? " sel-noncontract" : "");
 }
 
-// ══════════════════════════════════════════════════════════
-//  時段相關函式
-//  ★ 核心修正：完全使用 DOM API（createElement + textContent）
-//    不使用任何 innerHTML 注入時間字串
-//    徹底防止 Chrome 把 "09:00" 解析成 Date 物件
-// ══════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════
+//  ★★★ 時段渲染 ★★★
+//
+//  根本解法：
+//  時段的「小時」和「分鐘」永遠以純數字存在 slotSettings，
+//  顯示時用 padStart(2,"0") 組合成兩個獨立的數字字串，
+//  中間插入一個獨立的冒號節點。
+//
+//  這樣 DOM 裡永遠不會出現 "09:00" 這個完整字串，
+//  Chrome 的任何解析器都無法把它識別為時間。
+// ════════════════════════════════════════════════════════
 
-/** 把 "09:00" 轉成兩個獨立 DOM 節點顯示，完全杜絕瀏覽器日期解析
- *  顯示效果：09:00（外觀完全正常）
- *  原理：把時和分拆成兩個 textNode，中間放一個純文字冒號節點
- *        瀏覽器永遠不會把三個獨立 textNode 合併解析為 Date */
-function safeTimeDisplay(container, rawTime) {
-  // rawTime 格式："09:00" 或 "13:30"
-  const parts = String(rawTime).split(":");
-  const hh = parts[0] || "";
-  const mm = parts[1] || "";
-
-  const spanH = document.createElement("span");
-  spanH.textContent = hh;           // "09"
-
-  const spanColon = document.createElement("span");
-  spanColon.textContent = ":";      // ":"（普通冒號，不會被解析）
-  spanColon.setAttribute("aria-hidden", "true");
-
-  const spanM = document.createElement("span");
-  spanM.textContent = mm;           // "00"
-
-  container.appendChild(spanH);
-  container.appendChild(spanColon);
-  container.appendChild(spanM);
-}
-
-/** 建立一個時段 DOM 元素 */
-function makeTimeSlotEl(rawTime, capText, capClass, isFull, isLoading) {
+/** 建立時段 DOM 元素
+ *  ★ 時間顯示原理：
+ *    - spanH（class="ts-hh"）只含數字 "09"，沒有冒號
+ *    - CSS ::after 偽元素插入視覺冒號，DOM 完全沒有冒號字元
+ *    - spanM 只含數字 "00"
+ *    - 瀏覽器拿不到任何完整時間字串，無法解析成 Date
+ */
+function makeSlotEl(slot, capText, capClass, isFull, isLoading) {
   const el = document.createElement("div");
   el.className = "time-slot"
     + (isFull    ? " ts-full"    : "")
     + (isLoading ? " ts-loading" : "");
 
-  // 時間顯示：拆成獨立 span 節點，瀏覽器絕對無法解析為 Date
-  const tWrap = document.createElement("b");
+  const tWrap = document.createElement("div");
   tWrap.className = "ts-time";
-  safeTimeDisplay(tWrap, rawTime);
 
-  // 名額文字
-  const cSpan = document.createElement("span");
-  cSpan.className   = "ts-cap" + (capClass ? " " + capClass : "");
-  cSpan.textContent = capText;
+  // 小時：class="ts-hh"，CSS ::after 在它後面插入冒號
+  const spanH = document.createElement("span");
+  spanH.className   = "ts-hh";
+  spanH.textContent = String(slot.hour).padStart(2, "0");   // 純數字字串 "09"
 
-  el.appendChild(tWrap);
-  el.appendChild(cSpan);
+  // 分鐘：class="ts-mm"，純數字字串 "00"
+  const spanM = document.createElement("span");
+  spanM.className   = "ts-mm";
+  spanM.textContent = String(slot.minute).padStart(2, "0"); // 純數字字串 "00"
+
+  // ★ 完全沒有冒號字元插入 DOM
+  tWrap.append(spanH, spanM);
+
+  const capEl = document.createElement("div");
+  capEl.className   = "ts-cap" + (capClass ? " " + capClass : "");
+  capEl.textContent = capText;
+
+  el.append(tWrap, capEl);
   return el;
 }
 
-/** 初始狀態：請先選擇日期 */
+/** 初始：請先選擇日期 */
 function renderTimeSlotsEmpty() {
   const grid = document.getElementById("time-grid");
   grid.innerHTML = "";
   const el = document.createElement("div");
-  el.className = "time-slot ts-loading";
-  el.style.cssText = "grid-column:1/-1;padding:14px;justify-content:center;";
-  const sp = document.createElement("span");
-  sp.className   = "ts-cap";
-  sp.style.fontSize = "13px";
-  sp.textContent = "請先選擇日期";
-  el.appendChild(sp);
+  el.style.cssText = "grid-column:1/-1;padding:16px;text-align:center;font-size:13px;color:var(--hint)";
+  el.textContent = "請先選擇日期";
   grid.appendChild(el);
   hideAvailBar();
 }
 
-/** 查詢中骨架 */
+/** 查詢中 */
 function renderTimeSlotsLoading() {
   const grid = document.getElementById("time-grid");
   grid.innerHTML = "";
-  slotSettings.forEach(({ time }) => {
-    const el = makeTimeSlotEl(time, "查詢中", "", false, true);
-    el.dataset.time = time;
+  slotSettings.forEach(slot => {
+    const el = makeSlotEl(slot, "查詢中", "", false, true);
     grid.appendChild(el);
   });
 }
 
-/** 正式渲染（含名額資訊） */
+/** 正式渲染 */
 function renderTimeSlots(slots, avail) {
   const grid = document.getElementById("time-grid");
   grid.innerHTML = "";
 
-  slots.forEach(({ time, capacity }) => {
-    const info      = avail[time];
-    const remaining = info ? info.remaining : capacity;
+  slots.forEach(slot => {
+    const info      = avail[slot.label];
+    const remaining = info ? info.remaining : slot.capacity;
     const isFull    = remaining <= 0;
 
     let capText = "", capClass = "";
     if (info) {
-      if (isFull)            { capText = "已額滿";                    capClass = "cap-none"; }
-      else if (remaining===1){ capText = "剩 1 台";                   capClass = "cap-few";  }
-      else                   { capText = "剩 " + remaining + " 台";  capClass = "cap-ok";   }
+      if (isFull)            { capText = "已額滿";               capClass = "cap-none"; }
+      else if (remaining===1){ capText = "剩 1 台";              capClass = "cap-few";  }
+      else                   { capText = "剩 " + remaining + " 台"; capClass = "cap-ok"; }
     } else {
-      capText  = "上限 " + capacity + " 台";
-      capClass = "";
+      capText = "上限 " + slot.capacity + " 台";
     }
 
-    const el = makeTimeSlotEl(time, capText, capClass, isFull, false);
-    el.dataset.time = time;   // 原始值備查
+    const el = makeSlotEl(slot, capText, capClass, isFull, false);
 
     if (!isFull) {
       el.onclick = () => {
         document.querySelectorAll(".time-slot").forEach(t => t.classList.remove("ts-selected"));
         el.classList.add("ts-selected");
-        selectedTime = time;   // 送出用原始值
+        selectedTime = slot.label;
         showErr("err-time", false);
       };
     }
-    if (selectedTime === time && !isFull) el.classList.add("ts-selected");
+    if (selectedTime === slot.label && !isFull) el.classList.add("ts-selected");
     grid.appendChild(el);
   });
 }
 
-// ── 日期變更 ──────────────────────────────────────────────
+// ─── 日期變更 ───────────────────────────────────────────
 function onDateChange() {
   showErr("err-date", false);
   selectedTime = "";
@@ -897,9 +1037,7 @@ function onDateChange() {
   const cl = document.getElementById("date-closed");
 
   if (isClosedDay(dateVal)) {
-    cl.style.display = "block";
-    renderTimeSlotsEmpty();
-    return;
+    cl.style.display = "block"; renderTimeSlotsEmpty(); return;
   }
   cl.style.display = "none";
   if (!dateVal) { renderTimeSlotsEmpty(); return; }
@@ -912,10 +1050,7 @@ function onDateChange() {
 
 async function fetchAvailability(date) {
   if (isOffline) {
-    currentAvail = {};
-    renderTimeSlots(slotSettings, {});
-    hideAvailBar();
-    return;
+    currentAvail = {}; renderTimeSlots(slotSettings, {}); hideAvailBar(); return;
   }
   try {
     const ctrl = new AbortController();
@@ -930,21 +1065,19 @@ async function fetchAvailability(date) {
     renderTimeSlots(slotSettings, currentAvail);
     updateAvailBar(currentAvail);
   } catch (e) {
-    currentAvail = {};
-    renderTimeSlots(slotSettings, {});
-    hideAvailBar();
+    currentAvail = {}; renderTimeSlots(slotSettings, {}); hideAvailBar();
   }
 }
 
-// ── Availability bar ──────────────────────────────────────
+// ─── Avail bar ──────────────────────────────────────────
 function updateAvailBar(avail) {
   const vals  = Object.values(avail);
   if (!vals.length) { hideAvailBar(); return; }
-  const total = vals.reduce((s, v) => s + v.remaining, 0);
-  const full  = vals.filter(v => v.remaining === 0).length;
-  const few   = vals.filter(v => v.remaining === 1).length;
-  if      (total === 0) showAvailBar("ab-full", "當天所有時段均已額滿，請選擇其他日期");
-  else if (full || few) showAvailBar("ab-warn", "當天尚餘 " + total + " 個名額（部分時段即將額滿）");
+  const total = vals.reduce((s,v) => s+v.remaining, 0);
+  const full  = vals.filter(v => v.remaining===0).length;
+  const few   = vals.filter(v => v.remaining===1).length;
+  if (total===0)        showAvailBar("ab-full", "當天所有時段均已額滿，請選擇其他日期");
+  else if (full||few)   showAvailBar("ab-warn", "當天尚餘 " + total + " 個名額（部分時段即將額滿）");
   else                  showAvailBar("ab-ok",   "當天所有時段均有名額（共餘 " + total + " 個）");
 }
 function showAvailBar(cls, text) {
@@ -956,7 +1089,7 @@ function hideAvailBar() {
   document.getElementById("avail-bar").className = "avail-bar";
 }
 
-// ── 頁面切換 ──────────────────────────────────────────────
+// ─── 頁面切換 ───────────────────────────────────────────
 function goPage(n) {
   document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
   document.getElementById("page" + n).classList.add("active");
@@ -966,29 +1099,29 @@ function goPage(n) {
     const dot = el.querySelector(".step-dot");
     el.className = "step-item";
     if      (i < n) { el.classList.add("done");   dot.textContent = "✓"; }
-    else if (i === n){ el.classList.add("active"); dot.textContent = String(i); }
+    else if (i===n) { el.classList.add("active"); dot.textContent = String(i); }
     else              dot.textContent = String(i);
   }
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
-// ── 驗證工具 ──────────────────────────────────────────────
+// ─── 工具 ───────────────────────────────────────────────
 function showErr(id, show) {
   const el = document.getElementById(id);
   if (el) el.style.display = show ? "block" : "none";
 }
 
-// ── 第一步驗證 ────────────────────────────────────────────
+// ─── 驗證 Page 1 ────────────────────────────────────────
 function validatePage1() {
   let ok = true;
-  if (!selectedService)                                    { showErr("err-service", true); ok = false; }
-  if (!document.getElementById("appt-date").value)        { showErr("err-date",    true); ok = false; }
-  if (isClosedDay(document.getElementById("appt-date").value)) ok = false;
-  if (!selectedTime)                                       { showErr("err-time",    true); ok = false; }
+  if (!selectedService)                                    { showErr("err-service", true); ok=false; }
+  if (!document.getElementById("appt-date").value)        { showErr("err-date",    true); ok=false; }
+  if (isClosedDay(document.getElementById("appt-date").value)) ok=false;
+  if (!selectedTime)                                       { showErr("err-time",    true); ok=false; }
   if (ok) goPage(2);
 }
 
-// ── 第二步驗證 ────────────────────────────────────────────
+// ─── 驗證 Page 2 ────────────────────────────────────────
 function validatePage2() {
   let ok = true;
   const plate   = document.getElementById("plate").value.trim();
@@ -997,71 +1130,66 @@ function validatePage2() {
   const phone   = document.getElementById("phone").value.trim();
   const email   = document.getElementById("email").value.trim();
 
-  if (!plate)            { showErr("err-plate",   true); ok = false; } else showErr("err-plate",   false);
-  if (vin.length !== 17) { showErr("err-vin",     true); ok = false; } else showErr("err-vin",     false);
-  if (!contact)          { showErr("err-contact", true); ok = false; } else showErr("err-contact", false);
-  if (!phone)            { showErr("err-phone",   true); ok = false; } else showErr("err-phone",   false);
+  if (!plate)   { showErr("err-plate",   true); ok=false; } else showErr("err-plate",   false);
+
+  // VIN 選填：有填才驗證長度
+  if (vin && vin.length !== 17) {
+    showErr("err-vin", true); ok=false;
+  } else showErr("err-vin", false);
+
+  if (!contact) { showErr("err-contact", true); ok=false; } else showErr("err-contact", false);
+  if (!phone)   { showErr("err-phone",   true); ok=false; } else showErr("err-phone",   false);
+
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    showErr("err-email", true); ok = false;
+    showErr("err-email", true); ok=false;
   } else showErr("err-email", false);
+
   if (!ok) return;
 
-  // 填確認摘要（全部用 textContent，安全可靠）
+  // 填摘要
   const parts = document.getElementById("appt-date").value.split("-");
   document.getElementById("sum-service").textContent  = selectedService;
   document.getElementById("sum-date").textContent     = parts[0] + " 年 " + parts[1] + " 月 " + parts[2] + " 日";
   document.getElementById("sum-time").textContent     = selectedTime;
   document.getElementById("sum-plate").textContent    = plate;
-  document.getElementById("sum-vin").textContent      = vin;
+  document.getElementById("sum-vin").textContent      = vin || "（未填）";
   document.getElementById("sum-contact").textContent  = contact;
   document.getElementById("sum-phone").textContent    = phone;
   document.getElementById("sum-email").textContent    = email || "（未填）";
   document.getElementById("sum-notes").textContent    = document.getElementById("notes").value.trim() || "無";
   document.getElementById("sum-category").textContent = selectedCategory || "（未選）";
   document.getElementById("sum-insurer").textContent  = document.getElementById("insurer").value || "（未選）";
-
   if (IS_STAFF) {
     document.getElementById("sum-contract").textContent =
-      contractState === "contract"    ? "有合約"
-      : contractState === "noncontract" ? "非合約"
-      : "（未選）";
+      contractState==="contract" ? "有合約" : contractState==="noncontract" ? "非合約" : "（未選）";
   }
 
   // 名額徽章
-  const badge = document.getElementById("sum-cap-badge");
-  const info  = currentAvail[selectedTime];
-  const aFull = document.getElementById("alert-full");
-  const aFew  = document.getElementById("alert-few");
-  aFull.classList.remove("show");
-  aFew.classList.remove("show");
+  const badge  = document.getElementById("sum-cap-badge");
+  const info   = currentAvail[selectedTime];
+  const aFull  = document.getElementById("alert-full");
+  const aFew   = document.getElementById("alert-few");
+  aFull.classList.remove("show"); aFew.classList.remove("show");
   document.getElementById("submit-btn").disabled = false;
 
   if (info) {
-    if (info.remaining <= 0) {
-      badge.className   = "cap-badge-full";
-      badge.textContent = "（已額滿）";
-      aFull.classList.add("show");
-      document.getElementById("submit-btn").disabled = true;
-    } else if (info.remaining === 1) {
-      badge.className   = "cap-badge-few";
-      badge.textContent = "（剩 1 台）";
-      aFew.classList.add("show");
+    if (info.remaining<=0) {
+      badge.className="cap-badge-full"; badge.textContent="（已額滿）";
+      aFull.classList.add("show"); document.getElementById("submit-btn").disabled=true;
+    } else if (info.remaining===1) {
+      badge.className="cap-badge-few"; badge.textContent="（剩 1 台）"; aFew.classList.add("show");
     } else {
-      badge.className   = "cap-badge-ok";
-      badge.textContent = "（剩 " + info.remaining + " 台）";
+      badge.className="cap-badge-ok"; badge.textContent="（剩 " + info.remaining + " 台）";
     }
-  } else {
-    badge.textContent = "";
-  }
+  } else badge.textContent = "";
 
   goPage(3);
 }
 
-// ── 送出預約 ──────────────────────────────────────────────
+// ─── 送出 ───────────────────────────────────────────────
 async function submitBooking() {
   const btn = document.getElementById("submit-btn");
-  btn.disabled    = true;
-  btn.textContent = "送出中...";
+  btn.disabled=true; btn.textContent="送出中...";
   showLoading("正在送出預約並發送通知...");
 
   const payload = {
@@ -1085,9 +1213,7 @@ async function submitBooking() {
     const ctrl = new AbortController();
     setTimeout(() => ctrl.abort(), 20000);
     const res  = await fetch(APP_CONFIG.SCRIPT_URL, {
-      method: "POST",
-      body:   JSON.stringify(payload),
-      signal: ctrl.signal,
+      method:"POST", body:JSON.stringify(payload), signal:ctrl.signal,
     });
     const data = await res.json();
     hideLoading();
@@ -1096,60 +1222,44 @@ async function submitBooking() {
       document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
       document.getElementById("page-success").classList.add("active");
       document.getElementById("step-bar").style.display = "none";
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      window.scrollTo({ top:0, behavior:"smooth" });
     } else if (data.full) {
-      btn.disabled    = true;
-      btn.textContent = "確認送出預約";
+      btn.disabled=true; btn.textContent="確認送出預約";
       document.getElementById("alert-full").classList.add("show");
       alert("⚠️ " + data.error + "\n\n請返回重新選擇時段。");
     } else {
       throw new Error(data.error || "送出失敗");
     }
-  } catch (e) {
-    hideLoading();
-    btn.disabled    = false;
-    btn.textContent = "確認送出預約";
-    if (e.name === "AbortError") {
-      alert("連線逾時，請確認網路後再試。");
-    } else {
-      alert("送出失敗，請稍後再試。\n\n" + e.message);
-    }
+  } catch(e) {
+    hideLoading(); btn.disabled=false; btn.textContent="確認送出預約";
+    alert(e.name==="AbortError" ? "連線逾時，請稍後再試。" : "送出失敗：" + e.message);
   }
 }
 
-// ── 重設 ──────────────────────────────────────────────────
+// ─── 重設 ───────────────────────────────────────────────
 function resetAll() {
-  selectedService  = "";
-  selectedTime     = "";
-  selectedCategory = "";
-  contractState    = "";
-  currentAvail     = {};
-
+  selectedService=""; selectedTime=""; selectedCategory=""; contractState=""; currentAvail={};
   ["plate","vin","contact","phone","email","notes"].forEach(id => {
-    document.getElementById(id).value = "";
+    document.getElementById(id).value="";
   });
-  document.getElementById("appt-date").value  = "";
-  document.getElementById("date-closed").style.display = "none";
-  document.getElementById("insurer").value = "";
-
+  document.getElementById("appt-date").value="";
+  document.getElementById("date-closed").style.display="none";
+  document.getElementById("insurer").value="";
   if (IS_STAFF) {
-    document.getElementById("btn-contract").classList.remove("sel-contract","sel-noncontract");
-    document.getElementById("btn-noncontract").classList.remove("sel-contract","sel-noncontract");
+    document.getElementById("btn-contract").className="contract-btn";
+    document.getElementById("btn-noncontract").className="contract-btn";
   }
-
-  document.getElementById("submit-btn").disabled    = false;
-  document.getElementById("submit-btn").textContent = "確認送出預約";
+  document.getElementById("submit-btn").disabled=false;
+  document.getElementById("submit-btn").textContent="確認送出預約";
   document.getElementById("alert-full").classList.remove("show");
   document.getElementById("alert-few").classList.remove("show");
   document.querySelectorAll(".svc-opt").forEach(c => c.classList.remove("selected"));
   document.querySelectorAll(".cat-opt").forEach(c => c.classList.remove("selected"));
-
   renderTimeSlotsEmpty();
   hideAvailBar();
   goPage(1);
 }
 
-// ── Loading ───────────────────────────────────────────────
 function showLoading(msg) {
   document.getElementById("loading-text").textContent = msg || "處理中...";
   document.getElementById("loading").classList.add("show");
