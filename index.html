@@ -12,7 +12,7 @@
        ══════════════════════════════════════ -->
   <script>
   const APP_CONFIG = {
-    SCRIPT_URL:      "https://script.google.com/macros/s/AKfycbzLejfeP46jPvLY49G_Zp7QURKNAWSl5Wj2SdkvRMb4NRfr74tIb0A6PJta03FgCyHX/exec",
+    SCRIPT_URL:      "https://script.google.com/macros/s/AKfycbxW_lH_fMlMQtcoCiFQMUmecCREhWMVhJf4GdpiWaqeBH2RyjC164S8EDcLlidJS0fW/exec",
     SHOP_NAME:       "裕登",
     SHOP_SUBTITLE:   "特斯拉授權鈑噴中心 及 輪胎服務中心",
     STAFF_LABEL:     "員工模式",
@@ -23,15 +23,17 @@
       { name:"鈑噴維修",       desc:"車身鈑金、烤漆、碰撞修復" },
       { name:"輪胎更換及定位", desc:"四輪更換、四輪定位校正"   },
     ],
-    // ★ 時段格式：hour 和 minute 分開存，完全避免瀏覽器把字串解析成 Date
+    // ★ 時段格式：hour/minute 分開存，避免瀏覽器解析成 Date
+    //   staffOnly:true  → 僅員工可看到此時段
+    //   staffOnly:false → 車主與員工都可選
     FALLBACK_TIMES: [
-      { hour:9,  minute:0,  label:"09:00", capacity:2 },
-      { hour:10, minute:0,  label:"10:00", capacity:2 },
-      { hour:11, minute:0,  label:"11:00", capacity:2 },
-      { hour:13, minute:30, label:"13:30", capacity:2 },
-      { hour:14, minute:30, label:"14:30", capacity:2 },
-      { hour:15, minute:30, label:"15:30", capacity:2 },
-      { hour:16, minute:30, label:"16:30", capacity:1 },
+      { hour:9,  minute:0,  label:"09:00", capacity:2, staffOnly:false },
+      { hour:10, minute:0,  label:"10:00", capacity:2, staffOnly:false },
+      { hour:11, minute:0,  label:"11:00", capacity:2, staffOnly:false },
+      { hour:13, minute:30, label:"13:30", capacity:2, staffOnly:false },
+      { hour:14, minute:30, label:"14:30", capacity:2, staffOnly:false },
+      { hour:15, minute:30, label:"15:30", capacity:2, staffOnly:false },
+      { hour:16, minute:30, label:"16:30", capacity:1, staffOnly:false },
     ],
     FALLBACK_CATEGORIES: [
       { name:"理賠", desc:"保險理賠", publicVisible:true  },
@@ -769,7 +771,9 @@ async function loadSettings() {
     // ★ 把 Apps Script 回傳的 time 字串（"09:00"）
     //   轉換成 { hour, minute, label } 格式
     //   之後顯示時永遠只用數字，不用字串
-    slotSettings = (data.timeSlots || []).map(s => parseTimeSlot(s));
+    const allSlots = (data.timeSlots || []).map(s => parseTimeSlot(s));
+    // 車主只看到 staffOnly:false 的時段；員工看全部
+    slotSettings = IS_STAFF ? allSlots : allSlots.filter(s => !s.staffOnly);
 
     renderServices(data.services    || []);
     renderCategoryPills(data.categories || []);
@@ -780,7 +784,10 @@ async function loadSettings() {
     console.warn("Sheets 讀取失敗，使用備用：", e.message);
     isOffline    = true;
     IS_STAFF     = !!STAFF_CODE_VAL;
-    slotSettings = APP_CONFIG.FALLBACK_TIMES; // 已是 {hour,minute,label,capacity} 格式
+    // 車主只看 staffOnly:false；員工看全部
+    slotSettings = IS_STAFF
+      ? APP_CONFIG.FALLBACK_TIMES
+      : APP_CONFIG.FALLBACK_TIMES.filter(s => !s.staffOnly);
 
     renderServices(APP_CONFIG.FALLBACK_SERVICES);
     renderCategoryPills(
@@ -800,13 +807,15 @@ async function loadSettings() {
  * FALLBACK_TIMES 格式：  { hour:9, minute:0, label:"09:00", capacity:2 }
  */
 function parseTimeSlot(s) {
-  if (typeof s.hour === "number") return s;   // 已是正確格式
-  // 從 "09:00" 字串解析
-  const parts  = String(s.time || "").split(":");
-  const hour   = parseInt(parts[0], 10) || 0;
-  const minute = parseInt(parts[1], 10) || 0;
-  const label  = String(s.time || "");
-  return { hour, minute, label, capacity: s.capacity || 2 };
+  if (typeof s.hour === "number") return s;   // 已是正確格式（FALLBACK 用）
+  // 從 Apps Script 回傳的 "09:00" 字串解析
+  const parts    = String(s.time || "").split(":");
+  const hour     = parseInt(parts[0], 10) || 0;
+  const minute   = parseInt(parts[1], 10) || 0;
+  const label    = String(s.time || "");
+  // staffOnly：Apps Script 回傳時有此欄則使用，否則預設 false
+  const staffOnly = !!s.staffOnly;
+  return { hour, minute, label, capacity: s.capacity || 2, staffOnly };
 }
 
 // ─── 員工模式 UI ────────────────────────────────────────
@@ -1008,10 +1017,10 @@ function renderTimeSlots(slots, avail) {
     let capText = "", capClass = "";
     if (info) {
       if (isFull)            { capText = "已額滿";               capClass = "cap-none"; }
-      else if (remaining===1){ capText = "剩 1 台";              capClass = "cap-few";  }
-      else                   { capText = "剩 " + remaining + " 台"; capClass = "cap-ok"; }
+      else if (remaining===1){ capText = "尚可預約 1 台";        capClass = "cap-few";  }
+      else                   { capText = "尚可預約 " + remaining + " 台"; capClass = "cap-ok"; }
     } else {
-      capText = "上限 " + slot.capacity + " 台";
+      capText = "尚可預約 " + slot.capacity + " 台";
     }
 
     const el = makeSlotEl(slot, capText, capClass, isFull, false);
@@ -1076,9 +1085,9 @@ function updateAvailBar(avail) {
   const total = vals.reduce((s,v) => s+v.remaining, 0);
   const full  = vals.filter(v => v.remaining===0).length;
   const few   = vals.filter(v => v.remaining===1).length;
-  if (total===0)        showAvailBar("ab-full", "當天所有時段均已額滿，請選擇其他日期");
-  else if (full||few)   showAvailBar("ab-warn", "當天尚餘 " + total + " 個名額（部分時段即將額滿）");
-  else                  showAvailBar("ab-ok",   "當天所有時段均有名額（共餘 " + total + " 個）");
+  if (total===0)       showAvailBar("ab-full", "當天所有時段均已額滿，請選擇其他日期");
+  else if (full||few)  showAvailBar("ab-warn", "部分時段即將額滿，請盡快選擇");
+  else                 hideAvailBar();  // 有充足名額時不顯示任何訊息
 }
 function showAvailBar(cls, text) {
   const b = document.getElementById("avail-bar");
