@@ -12,7 +12,7 @@
   <script>
   const APP_CONFIG = {
     // ① Apps Script 部署 URL
-    SCRIPT_URL: "https://script.google.com/macros/s/AKfycbxzzPkCGuNsQu9UFjs5ohfBJgc_3uzVHnG-9iZrO9NLEFEyWB29v0cbjOOr_V4h9isu/exec",
+    SCRIPT_URL: "https://script.google.com/macros/s/AKfycbwffSBlbOaQ62sHATcIa7U3kma1_hX7S_M7IDH9xs0_61Ore-ANGLI49Gt9X4P8q_ix/exec",
 
     // ② 店家資訊
     SHOP_NAME:     "裕登",
@@ -518,9 +518,30 @@ document.addEventListener("DOMContentLoaded", () => {
 
 // ─── 商家說明欄 ────────────────────────────────────────────
 // text / imageUrl：優先使用 Sheets 回傳值，離線時用 APP_CONFIG 備用
+
+/**
+ * 自動把 Google Drive 分享連結轉成可嵌入圖片的直連網址
+ * 輸入：https://drive.google.com/file/d/FILE_ID/view?...
+ * 輸出：https://drive.google.com/uc?export=view&id=FILE_ID
+ */
+function convertDriveUrl(url) {
+  if (!url) return "";
+  // 已是直連格式，不用轉換
+  if (url.includes("uc?export=view")) return url;
+  // 抓出 /d/FILE_ID/ 格式的 ID
+  const m = url.match(/\/d\/([^\/\?&]+)/);
+  if (m && m[1]) {
+    return "https://drive.google.com/uc?export=view&id=" + m[1];
+  }
+  // 其他格式（非 Drive）直接回傳原網址
+  return url;
+}
+
 function renderNoticeBoard(text, imageUrl) {
-  const t = text     || APP_CONFIG.NOTICE_TEXT      || "";
-  const u = imageUrl || APP_CONFIG.NOTICE_IMAGE_URL || "";
+  const t    = text     || APP_CONFIG.NOTICE_TEXT      || "";
+  const rawU = imageUrl || APP_CONFIG.NOTICE_IMAGE_URL || "";
+  const u    = convertDriveUrl(rawU);   // ★ 自動轉換 Drive 連結
+
   if (!t && !u) return;
 
   document.getElementById("notice-board").style.display = "block";
@@ -528,10 +549,19 @@ function renderNoticeBoard(text, imageUrl) {
   if (t) {
     document.getElementById("notice-body").textContent = t;
   }
+
   if (u) {
     const img = document.getElementById("notice-img");
     img.src   = u;
     img.style.display = "block";
+    // ★ 圖片載入失敗時顯示提示，不影響表單使用
+    img.onerror = () => {
+      img.style.display = "none";
+      const warn = document.createElement("div");
+      warn.style.cssText = "font-size:12px;color:var(--hint);margin-top:8px;padding:8px 12px;background:var(--s2);border-radius:var(--rs)";
+      warn.textContent   = "⚠️ 圖片無法載入，請確認圖片連結是否公開分享";
+      img.parentNode.insertBefore(warn, img.nextSibling);
+    };
   }
 }
 
