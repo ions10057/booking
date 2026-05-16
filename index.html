@@ -11,34 +11,20 @@
        ════════════════════════════════════════ -->
   <script>
   const APP_CONFIG = {
-    // ① Apps Script 部署 URL
-    SCRIPT_URL: "https://script.google.com/macros/s/AKfycbyfTBkXEJJHwSJCNdsrR4SRvGjLoq7pXoPTOgszS-NTLpOt5VcdfOH1r66PXiSZJE0N/exec",
-
-    // ② 店家資訊
-    SHOP_NAME:     "裕登",
-    SHOP_SUBTITLE: "特斯拉授權鈑噴中心 及 輪胎服務中心",
-    STAFF_LABEL:   "員工模式",
-
-    // ③ 商家說明欄（在表單最上方顯示給車主看）
-    // 可填入任何文字說明，換行用 \n
-    // 留空字串 "" 則不顯示此欄
-    NOTICE_TEXT: "【預約注意事項】\n✦ 請於預約時間前 10 分鐘到達\n✦ 請攜帶行照正本及身分證件\n✦ 如需取消請提前 24 小時來電告知\n✦ 進廠後實際工時以現場評估為準",
-
-    // ④ 說明欄圖片網址（選填，留空則不顯示圖片）
-    NOTICE_IMAGE_URL: "",
-
-    // ⑤ 休息日（0=日,1=一...6=六）
+    SCRIPT_URL:     "https://script.google.com/macros/s/AKfycbwdvkRspLmuCddJDXGgd9SVrIOT0-ztwUZEj9rhAlmYIN7Y7WXc35-ENjTEAeotQpRO/exec",
+    SHOP_NAME:      "裕登",
+    SHOP_SUBTITLE:  "特斯拉授權鈑噴中心 及 輪胎服務中心",
+    STAFF_LABEL:    "員工模式",
     CLOSED_WEEKDAYS: [0],
     MIN_DAYS_AHEAD:  1,
     MAX_DAYS_AHEAD:  60,
-
-    // ⑥ 備用選項（Apps Script 無法連線時顯示）
+    // 備用說明（Sheets 無法連線時顯示）
+    NOTICE_TEXT:      "",
+    NOTICE_IMAGE_URL: "",
     FALLBACK_SERVICES: [
       { name:"鈑噴維修",       desc:"車身鈑金、烤漆、碰撞修復" },
       { name:"輪胎更換及定位", desc:"四輪更換、四輪定位校正"   },
     ],
-    // staffOnly:false → 所有人可選
-    // staffOnly:true  → 僅員工可選（車主看不到）
     FALLBACK_TIMES: [
       { hour:9,  minute:0,  label:"09:00", capacity:2, staffOnly:false },
       { hour:10, minute:0,  label:"10:00", capacity:2, staffOnly:false },
@@ -47,8 +33,6 @@
       { hour:14, minute:30, label:"14:30", capacity:2, staffOnly:false },
       { hour:15, minute:30, label:"15:30", capacity:2, staffOnly:false },
       { hour:16, minute:30, label:"16:30", capacity:1, staffOnly:false },
-      // 員工專屬時段範例（取消註解即啟用）：
-      // { hour:8,  minute:0,  label:"08:00", capacity:1, staffOnly:true  },
     ],
     FALLBACK_CATEGORIES: [
       { name:"理賠", desc:"保險理賠", publicVisible:true  },
@@ -63,247 +47,214 @@
   <!-- ════════════════════════════════════════ -->
 
   <style>
-    *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
-    :root {
-      --gold:#e8b800; --gold-d:#c9a000; --gold-bg:rgba(232,184,0,.09);
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --gold:#e8b800;--gold-d:#c9a000;--gold-bg:rgba(232,184,0,.09);
       --navy:#1a1a2e;
-      --staff:#6c47d9; --staff-bg:rgba(108,71,217,.08);
-      --text:#1c1c1e; --muted:#6e6e73; --hint:#aeaeb2;
-      --bg:#f5f5f7; --surface:#fff; --s2:#f9f9f9;
-      --border:rgba(0,0,0,.08); --border2:rgba(0,0,0,.15);
-      --ok:#34c759; --warn:#ff9500; --danger:#ff3b30;
-      --r:14px; --rs:10px; --touch:48px;
+      --staff:#6c47d9;--staff-bg:rgba(108,71,217,.08);
+      --text:#1c1c1e;--muted:#6e6e73;--hint:#aeaeb2;
+      --bg:#f5f5f7;--surface:#fff;--s2:#f9f9f9;
+      --border:rgba(0,0,0,.08);--border2:rgba(0,0,0,.15);
+      --ok:#34c759;--warn:#ff9500;--danger:#ff3b30;
+      --r:14px;--rs:10px;--touch:48px;
       --shadow:0 1px 4px rgba(0,0,0,.07);
     }
     @media(prefers-color-scheme:dark){
-      :root{
-        --text:#f0f0f0; --muted:#98989d; --hint:#636366;
-        --bg:#0e0e0f; --surface:#1c1c1e; --s2:#2c2c2e;
-        --border:rgba(255,255,255,.08); --border2:rgba(255,255,255,.15);
-        --shadow:0 1px 4px rgba(0,0,0,.35);
-      }
+      :root{--text:#f0f0f0;--muted:#98989d;--hint:#636366;
+            --bg:#0e0e0f;--surface:#1c1c1e;--s2:#2c2c2e;
+            --border:rgba(255,255,255,.08);--border2:rgba(255,255,255,.15);
+            --shadow:0 1px 4px rgba(0,0,0,.35);}
     }
-    html { scroll-behavior:smooth; -webkit-text-size-adjust:100%; }
-    body {
-      font-family:-apple-system,"PingFang TC","Microsoft JhengHei","Noto Sans TC",sans-serif;
-      background:var(--bg); color:var(--text); min-height:100vh;
-      -webkit-font-smoothing:antialiased;
-    }
+    html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+    body{font-family:-apple-system,"PingFang TC","Microsoft JhengHei","Noto Sans TC",sans-serif;
+         background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased}
 
     /* Header */
-    .app-header { background:var(--navy); position:sticky; top:0; z-index:200; border-bottom:1px solid rgba(255,255,255,.06); }
-    .app-header.staff-mode { background:#2a1a4e; }
-    .header-inner { max-width:640px; margin:0 auto; padding:12px 18px; display:flex; align-items:center; gap:11px; }
-    .h-logo { width:36px; height:36px; background:var(--gold); border-radius:9px; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:15px; color:var(--navy); flex-shrink:0; }
-    .app-header.staff-mode .h-logo { background:var(--staff); color:#fff; }
-    .h-text h1 { font-size:13px; font-weight:600; color:#fff; line-height:1.3; }
-    .h-text p  { font-size:10px; color:rgba(255,255,255,.4); margin-top:1px; }
-    .staff-badge { margin-left:auto; display:none; background:var(--staff); color:#fff; font-size:10px; font-weight:600; padding:4px 10px; border-radius:20px; white-space:nowrap; }
-    .staff-mode .staff-badge { display:inline-block; }
+    .app-header{background:var(--navy);position:sticky;top:0;z-index:200;border-bottom:1px solid rgba(255,255,255,.06)}
+    .app-header.staff-mode{background:#2a1a4e}
+    .header-inner{max-width:640px;margin:0 auto;padding:12px 18px;display:flex;align-items:center;gap:11px}
+    .h-logo{width:36px;height:36px;background:var(--gold);border-radius:9px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;color:var(--navy);flex-shrink:0}
+    .app-header.staff-mode .h-logo{background:var(--staff);color:#fff}
+    .h-text h1{font-size:13px;font-weight:600;color:#fff;line-height:1.3}
+    .h-text p{font-size:10px;color:rgba(255,255,255,.4);margin-top:1px}
+    .staff-badge{margin-left:auto;display:none;background:var(--staff);color:#fff;font-size:10px;font-weight:600;padding:4px 10px;border-radius:20px;white-space:nowrap}
+    .staff-mode .staff-badge{display:inline-block}
 
     /* Layout */
-    .main { max-width:640px; margin:0 auto; padding:16px 14px 80px; }
+    .main{max-width:640px;margin:0 auto;padding:16px 14px 80px}
 
-    /* ── 商家說明欄 ── */
-    .notice-board {
-      background:var(--surface);
-      border-radius:var(--r);
-      border:.5px solid var(--border);
-      border-left:4px solid var(--gold);
-      padding:16px 18px;
-      margin-bottom:14px;
-      box-shadow:var(--shadow);
-    }
-    .notice-title {
-      font-size:12px; font-weight:700; color:var(--gold);
-      letter-spacing:.8px; text-transform:uppercase; margin-bottom:10px;
-      display:flex; align-items:center; gap:6px;
-    }
-    .notice-body {
-      font-size:14px; color:var(--text); line-height:1.8;
-      white-space:pre-line;  /* 保留換行 */
-    }
-    .notice-img {
-      width:100%; border-radius:var(--rs);
-      margin-top:12px; display:block;
-    }
+    /* 商家說明欄 */
+    .notice-board{background:var(--surface);border-radius:var(--r);border:.5px solid var(--border);
+                  border-left:4px solid var(--gold);padding:16px 18px;margin-bottom:14px;box-shadow:var(--shadow);display:none}
+    .notice-title{font-size:12px;font-weight:700;color:var(--gold);letter-spacing:.8px;
+                  text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+    .notice-body{font-size:14px;color:var(--text);line-height:1.8;white-space:pre-line}
+    .notice-img{width:100%;border-radius:var(--rs);margin-top:12px;display:block}
 
     /* Step bar */
-    .step-bar { display:flex; background:var(--surface); border-radius:var(--r); border:.5px solid var(--border); padding:12px 14px; margin-bottom:14px; box-shadow:var(--shadow); }
-    .step-item { flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; position:relative; }
-    .step-item:not(:last-child)::after { content:''; position:absolute; top:12px; left:calc(50% + 14px); right:calc(-50% + 14px); height:1.5px; background:var(--border); transition:background .3s; }
-    .step-item.done:not(:last-child)::after { background:var(--gold); }
-    .step-dot { width:24px; height:24px; border-radius:50%; border:1.5px solid var(--border2); background:var(--bg); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:var(--hint); transition:all .3s; }
-    .step-item.active .step-dot { background:var(--gold); border-color:var(--gold); color:var(--navy); }
-    .step-item.done   .step-dot { background:var(--navy); border-color:var(--navy); color:#fff; font-size:10px; }
-    .step-label { font-size:10px; color:var(--hint); transition:color .3s; white-space:nowrap; }
-    .step-item.active .step-label { color:var(--gold); font-weight:600; }
-    .step-item.done   .step-label { color:var(--muted); }
+    .step-bar{display:flex;background:var(--surface);border-radius:var(--r);border:.5px solid var(--border);
+              padding:12px 14px;margin-bottom:14px;box-shadow:var(--shadow)}
+    .step-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;position:relative}
+    .step-item:not(:last-child)::after{content:'';position:absolute;top:12px;left:calc(50% + 14px);right:calc(-50% + 14px);height:1.5px;background:var(--border);transition:background .3s}
+    .step-item.done:not(:last-child)::after{background:var(--gold)}
+    .step-dot{width:24px;height:24px;border-radius:50%;border:1.5px solid var(--border2);background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--hint);transition:all .3s}
+    .step-item.active .step-dot{background:var(--gold);border-color:var(--gold);color:var(--navy)}
+    .step-item.done   .step-dot{background:var(--navy);border-color:var(--navy);color:#fff;font-size:10px}
+    .step-label{font-size:10px;color:var(--hint);transition:color .3s;white-space:nowrap}
+    .step-item.active .step-label{color:var(--gold);font-weight:600}
+    .step-item.done   .step-label{color:var(--muted)}
 
     /* Card */
-    .card { background:var(--surface); border-radius:var(--r); border:.5px solid var(--border); padding:16px 18px; margin-bottom:12px; box-shadow:var(--shadow); }
-    .card-label { font-size:11px; font-weight:600; color:var(--hint); letter-spacing:.8px; text-transform:uppercase; margin-bottom:14px; }
-    .req { color:var(--gold); margin-left:2px; }
-    .opt { color:var(--hint); font-size:10px; margin-left:4px; font-weight:400; text-transform:none; letter-spacing:0; }
-    .staff-tag { display:inline-block; background:var(--staff-bg); color:var(--staff); font-size:10px; padding:1px 7px; border-radius:10px; margin-left:6px; font-weight:600; vertical-align:middle; }
-    @media(prefers-color-scheme:dark){ .staff-tag { color:#a78bfa; } }
+    .card{background:var(--surface);border-radius:var(--r);border:.5px solid var(--border);padding:16px 18px;margin-bottom:12px;box-shadow:var(--shadow)}
+    .card-label{font-size:11px;font-weight:600;color:var(--hint);letter-spacing:.8px;text-transform:uppercase;margin-bottom:14px}
+    .req{color:var(--gold);margin-left:2px}
+    .opt{color:var(--hint);font-size:10px;margin-left:4px;font-weight:400;text-transform:none;letter-spacing:0}
+    .staff-tag{display:inline-block;background:var(--staff-bg);color:var(--staff);font-size:10px;padding:1px 7px;border-radius:10px;margin-left:6px;font-weight:600;vertical-align:middle}
+    @media(prefers-color-scheme:dark){.staff-tag{color:#a78bfa}}
 
     /* Service */
-    .svc-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-    .svc-opt { border:1.5px solid var(--border2); border-radius:var(--rs); padding:14px 12px 12px; cursor:pointer; transition:border-color .18s,background .18s; position:relative; user-select:none; min-height:var(--touch); }
-    .svc-opt:hover { border-color:var(--gold); }
-    .svc-opt.selected { border-color:var(--gold); background:var(--gold-bg); }
-    .svc-check { position:absolute; top:8px; right:8px; width:18px; height:18px; border-radius:50%; background:var(--gold); display:none; align-items:center; justify-content:center; font-size:10px; font-weight:700; color:var(--navy); }
-    .svc-opt.selected .svc-check { display:flex; }
-    .svc-icon { font-size:22px; margin-bottom:7px; display:block; }
-    .svc-name { font-size:14px; font-weight:600; color:var(--text); line-height:1.3; }
-    .svc-desc { font-size:11px; color:var(--muted); margin-top:3px; line-height:1.4; }
+    .svc-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .svc-opt{border:1.5px solid var(--border2);border-radius:var(--rs);padding:14px 12px 12px;cursor:pointer;transition:border-color .18s,background .18s;position:relative;user-select:none;min-height:var(--touch)}
+    .svc-opt:hover{border-color:var(--gold)}
+    .svc-opt.selected{border-color:var(--gold);background:var(--gold-bg)}
+    .svc-check{position:absolute;top:8px;right:8px;width:18px;height:18px;border-radius:50%;background:var(--gold);display:none;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--navy)}
+    .svc-opt.selected .svc-check{display:flex}
+    .svc-icon{font-size:22px;margin-bottom:7px;display:block}
+    .svc-name{font-size:14px;font-weight:600;color:var(--text);line-height:1.3}
+    .svc-desc{font-size:11px;color:var(--muted);margin-top:3px;line-height:1.4}
 
-    /* ══ 時段格 ══
-       關鍵：小時/分鐘用獨立 span + CSS ::after 冒號
-       DOM 裡不出現完整時間字串，瀏覽器無法解析成 Date */
-    .time-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
-    .time-slot { border:1.5px solid var(--border2); border-radius:var(--rs); padding:13px 6px 11px; text-align:center; cursor:pointer; transition:border-color .15s,background .15s; user-select:none; min-height:var(--touch); display:flex; flex-direction:column; align-items:center; gap:6px; position:relative; }
-    .ts-time { font-size:17px; font-weight:700; line-height:1; color:var(--text); font-variant-numeric:tabular-nums; display:flex; align-items:center; }
-    .ts-hh { }
-    .ts-hh::after { content:":"; font-weight:700; }  /* 冒號在 CSS，不在 DOM */
-    .ts-mm { }
-    .ts-cap { font-size:11px; color:var(--hint); line-height:1; }
-    .ts-cap.cap-ok   { color:var(--ok);     }
-    .ts-cap.cap-few  { color:var(--warn);   }
-    .ts-cap.cap-none { color:var(--danger); }
-    .time-slot:hover:not(.ts-full) { border-color:var(--gold); }
-    .time-slot:hover:not(.ts-full) .ts-time { color:var(--gold); }
-    .time-slot.ts-selected { background:var(--gold); border-color:var(--gold); }
-    .time-slot.ts-selected .ts-time { color:var(--navy); }
-    .time-slot.ts-selected .ts-cap  { color:rgba(26,26,46,.6); }
-    .time-slot.ts-full { background:var(--s2); opacity:.45; cursor:not-allowed; }
-    .time-slot.ts-full .ts-time { color:var(--hint); }
-    @keyframes shimmer { 0%,100%{opacity:.35} 50%{opacity:.85} }
-    .time-slot.ts-loading { cursor:default; pointer-events:none; }
-    .time-slot.ts-loading .ts-time,
-    .time-slot.ts-loading .ts-cap { animation:shimmer 1.1s ease-in-out infinite; }
+    /* Time slots — CSS ::after 插入冒號，DOM 完全不含時間字串，防止 Chrome 解析成 1899 年 */
+    .time-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+    .time-slot{border:1.5px solid var(--border2);border-radius:var(--rs);padding:13px 6px 11px;text-align:center;cursor:pointer;transition:border-color .15s,background .15s;user-select:none;min-height:var(--touch);display:flex;flex-direction:column;align-items:center;gap:6px;position:relative}
+    .ts-time{font-size:17px;font-weight:700;line-height:1;color:var(--text);font-variant-numeric:tabular-nums;display:flex;align-items:center}
+    .ts-hh{}
+    .ts-hh::after{content:":";font-weight:700}
+    .ts-mm{}
+    .ts-cap{font-size:11px;color:var(--hint);line-height:1}
+    .ts-cap.cap-ok{color:var(--ok)}  .ts-cap.cap-few{color:var(--warn)}  .ts-cap.cap-none{color:var(--danger)}
+    .time-slot:hover:not(.ts-full){border-color:var(--gold)}
+    .time-slot:hover:not(.ts-full) .ts-time{color:var(--gold)}
+    .time-slot.ts-selected{background:var(--gold);border-color:var(--gold)}
+    .time-slot.ts-selected .ts-time{color:var(--navy)}
+    .time-slot.ts-selected .ts-cap{color:rgba(26,26,46,.6)}
+    .time-slot.ts-full{background:var(--s2);opacity:.45;cursor:not-allowed}
+    .time-slot.ts-full .ts-time{color:var(--hint)}
+    @keyframes shimmer{0%,100%{opacity:.35}50%{opacity:.85}}
+    .time-slot.ts-loading{cursor:default;pointer-events:none}
+    .time-slot.ts-loading .ts-time,.time-slot.ts-loading .ts-cap{animation:shimmer 1.1s ease-in-out infinite}
     /* 員工專屬時段 */
-    .time-slot.ts-staff-only { border-style:dashed; border-color:rgba(108,71,217,.5); }
-    .time-slot.ts-staff-only::after { content:"員工"; position:absolute; top:4px; right:5px; font-size:9px; font-weight:600; color:var(--staff); letter-spacing:.3px; }
-    .time-slot.ts-staff-only:hover { border-color:var(--staff); }
-    .time-slot.ts-staff-only.ts-selected { border-style:solid; background:var(--staff); border-color:var(--staff); }
-    .time-slot.ts-staff-only.ts-selected .ts-time { color:#fff; }
-    .time-slot.ts-staff-only.ts-selected .ts-cap  { color:rgba(255,255,255,.65); }
+    .time-slot.ts-staff-only{border-style:dashed;border-color:rgba(108,71,217,.5)}
+    .time-slot.ts-staff-only::after{content:"員工";position:absolute;top:4px;right:5px;font-size:9px;font-weight:600;color:var(--staff);letter-spacing:.3px}
+    .time-slot.ts-staff-only:hover{border-color:var(--staff)}
+    .time-slot.ts-staff-only.ts-selected{border-style:solid;background:var(--staff);border-color:var(--staff)}
+    .time-slot.ts-staff-only.ts-selected .ts-time{color:#fff}
+    .time-slot.ts-staff-only.ts-selected .ts-cap{color:rgba(255,255,255,.65)}
 
     /* Avail bar */
-    .avail-bar { display:none; align-items:center; gap:8px; margin-top:12px; padding:9px 12px; border-radius:var(--rs); border:.5px solid var(--border); background:var(--s2); font-size:12px; color:var(--muted); }
-    .avail-bar.show { display:flex; }
-    .avail-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
-    .avail-bar.ab-warn { background:rgba(255,149,0,.08); border-color:rgba(255,149,0,.2); color:#7a4800; }
-    .avail-bar.ab-warn .avail-dot { background:var(--warn); }
-    .avail-bar.ab-full { background:rgba(255,59,48,.08); border-color:rgba(255,59,48,.2); color:#c0392b; }
-    .avail-bar.ab-full .avail-dot { background:var(--danger); }
-    @media(prefers-color-scheme:dark){ .avail-bar.ab-warn{color:#ffa733;} .avail-bar.ab-full{color:#ff7b7b;} }
+    .avail-bar{display:none;align-items:center;gap:8px;margin-top:12px;padding:9px 12px;border-radius:var(--rs);border:.5px solid var(--border);background:var(--s2);font-size:12px;color:var(--muted)}
+    .avail-bar.show{display:flex}
+    .avail-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+    .avail-bar.ab-warn{background:rgba(255,149,0,.08);border-color:rgba(255,149,0,.2);color:#7a4800}
+    .avail-bar.ab-warn .avail-dot{background:var(--warn)}
+    .avail-bar.ab-full{background:rgba(255,59,48,.08);border-color:rgba(255,59,48,.2);color:#c0392b}
+    .avail-bar.ab-full .avail-dot{background:var(--danger)}
+    @media(prefers-color-scheme:dark){.avail-bar.ab-warn{color:#ffa733}.avail-bar.ab-full{color:#ff7b7b}}
 
     /* Category pills */
-    .cat-grid { display:flex; flex-wrap:wrap; gap:8px; }
-    .cat-opt { border:1.5px solid var(--border2); border-radius:30px; padding:8px 18px; cursor:pointer; font-size:14px; font-weight:500; color:var(--text); transition:all .15s; user-select:none; white-space:nowrap; min-height:var(--touch); display:flex; align-items:center; }
-    .cat-opt:hover { border-color:var(--gold); color:var(--gold); }
-    .cat-opt.selected { background:var(--gold); border-color:var(--gold); color:var(--navy); }
-    .cat-opt.staff-only { border-style:dashed; border-color:rgba(108,71,217,.4); color:var(--staff); }
-    .cat-opt.staff-only:hover { border-color:var(--staff); background:var(--staff-bg); }
-    .cat-opt.staff-only.selected { background:var(--staff); border-color:var(--staff); color:#fff; border-style:solid; }
+    .cat-grid{display:flex;flex-wrap:wrap;gap:8px}
+    .cat-opt{border:1.5px solid var(--border2);border-radius:30px;padding:8px 18px;cursor:pointer;font-size:14px;font-weight:500;color:var(--text);transition:all .15s;user-select:none;white-space:nowrap;min-height:var(--touch);display:flex;align-items:center}
+    .cat-opt:hover{border-color:var(--gold);color:var(--gold)}
+    .cat-opt.selected{background:var(--gold);border-color:var(--gold);color:var(--navy)}
+    .cat-opt.staff-only{border-style:dashed;border-color:rgba(108,71,217,.4);color:var(--staff)}
+    .cat-opt.staff-only:hover{border-color:var(--staff);background:var(--staff-bg)}
+    .cat-opt.staff-only.selected{background:var(--staff);border-color:var(--staff);color:#fff;border-style:solid}
 
     /* Form fields */
-    .field { margin-bottom:14px; }
-    .field:last-child { margin-bottom:0; }
-    .field label { display:block; font-size:13px; color:var(--muted); margin-bottom:7px; }
-    .field input, .field select, .field textarea {
-      width:100%; padding:13px 14px; border:1px solid var(--border2); border-radius:var(--rs);
-      font-size:16px; font-family:inherit; color:var(--text); background:var(--s2);
-      transition:border-color .15s,box-shadow .15s; -webkit-appearance:none; appearance:none; min-height:var(--touch);
-    }
-    .field input:focus, .field select:focus, .field textarea:focus { outline:none; border-color:var(--gold); box-shadow:0 0 0 3px rgba(232,184,0,.15); background:var(--surface); }
-    .field textarea { min-height:88px; resize:vertical; font-size:15px; }
-    .field .hint { font-size:11px; color:var(--hint); margin-top:6px; line-height:1.5; }
-    .field-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-    .field select { background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23aeaeb2' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 14px center; padding-right:40px; cursor:pointer; }
-    .vin-field { font-family:'SF Mono','Menlo','Courier New',monospace !important; letter-spacing:2px; font-size:15px !important; }
+    .field{margin-bottom:14px}
+    .field:last-child{margin-bottom:0}
+    .field label{display:block;font-size:13px;color:var(--muted);margin-bottom:7px}
+    .field input,.field select,.field textarea{width:100%;padding:13px 14px;border:1px solid var(--border2);border-radius:var(--rs);font-size:16px;font-family:inherit;color:var(--text);background:var(--s2);transition:border-color .15s,box-shadow .15s;-webkit-appearance:none;appearance:none;min-height:var(--touch)}
+    .field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(232,184,0,.15);background:var(--surface)}
+    .field textarea{min-height:88px;resize:vertical;font-size:15px}
+    .field .hint{font-size:11px;color:var(--hint);margin-top:6px;line-height:1.5}
+    .field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .field select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23aeaeb2' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:40px;cursor:pointer}
+    .vin-field{font-family:'SF Mono','Menlo','Courier New',monospace!important;letter-spacing:2px;font-size:15px!important}
 
     /* Contract */
-    .contract-toggle { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-    .contract-btn { border:1.5px solid var(--border2); border-radius:var(--rs); padding:14px 8px; text-align:center; cursor:pointer; font-size:15px; font-weight:600; color:var(--muted); background:var(--s2); transition:all .18s; user-select:none; min-height:var(--touch); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; }
-    .contract-btn .cb-icon { font-size:20px; }
-    .contract-btn:hover { border-color:var(--gold); color:var(--gold); }
-    .contract-btn.sel-contract    { background:var(--ok);    border-color:var(--ok);    color:#fff; }
-    .contract-btn.sel-noncontract { background:var(--staff); border-color:var(--staff); color:#fff; }
+    .contract-toggle{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .contract-btn{border:1.5px solid var(--border2);border-radius:var(--rs);padding:14px 8px;text-align:center;cursor:pointer;font-size:15px;font-weight:600;color:var(--muted);background:var(--s2);transition:all .18s;user-select:none;min-height:var(--touch);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px}
+    .contract-btn .cb-icon{font-size:20px}
+    .contract-btn:hover{border-color:var(--gold);color:var(--gold)}
+    .contract-btn.sel-contract{background:var(--ok);border-color:var(--ok);color:#fff}
+    .contract-btn.sel-noncontract{background:var(--staff);border-color:var(--staff);color:#fff}
 
     /* Errors / Alerts */
-    .err { font-size:12px; color:var(--danger); margin-top:6px; display:none; }
-    .alert-box { display:none; padding:13px 15px; border-radius:var(--rs); font-size:14px; line-height:1.6; margin-bottom:12px; }
-    .alert-box.show { display:block; }
-    .alert-box.alert-full { background:rgba(255,59,48,.08); border:1px solid rgba(255,59,48,.25); color:#c0392b; }
-    .alert-box.alert-few  { background:rgba(255,149,0,.08); border:1px solid rgba(255,149,0,.25); color:#7a4800; }
-    .alert-box strong { display:block; margin-bottom:3px; font-size:15px; }
-    @media(prefers-color-scheme:dark){ .alert-box.alert-full{color:#ff7b7b;} .alert-box.alert-few{color:#ffa733;} }
+    .err{font-size:12px;color:var(--danger);margin-top:6px;display:none}
+    .alert-box{display:none;padding:13px 15px;border-radius:var(--rs);font-size:14px;line-height:1.6;margin-bottom:12px}
+    .alert-box.show{display:block}
+    .alert-box.alert-full{background:rgba(255,59,48,.08);border:1px solid rgba(255,59,48,.25);color:#c0392b}
+    .alert-box.alert-few{background:rgba(255,149,0,.08);border:1px solid rgba(255,149,0,.25);color:#7a4800}
+    .alert-box strong{display:block;margin-bottom:3px;font-size:15px}
+    @media(prefers-color-scheme:dark){.alert-box.alert-full{color:#ff7b7b}.alert-box.alert-few{color:#ffa733}}
 
-    /* Info box */
-    .info-box { background:var(--s2); border:.5px solid var(--border); border-left:3px solid var(--gold); border-radius:var(--rs); padding:11px 14px; font-size:13px; color:var(--muted); line-height:1.7; margin-bottom:12px; }
-    .info-box.staff-info { border-left-color:var(--staff); }
-    .info-box strong { color:var(--text); display:block; margin-bottom:3px; }
-
-    /* Offline */
-    .offline-banner { display:none; background:rgba(255,149,0,.1); border:.5px solid rgba(255,149,0,.3); border-radius:var(--rs); padding:10px 14px; font-size:13px; color:#7a4800; margin-bottom:12px; }
-    .offline-banner.show { display:block; }
-    @media(prefers-color-scheme:dark){ .offline-banner { color:#ffa733; } }
+    /* Info / Offline */
+    .info-box{background:var(--s2);border:.5px solid var(--border);border-left:3px solid var(--gold);border-radius:var(--rs);padding:11px 14px;font-size:13px;color:var(--muted);line-height:1.7;margin-bottom:12px}
+    .info-box.staff-info{border-left-color:var(--staff)}
+    .info-box strong{color:var(--text);display:block;margin-bottom:3px}
+    .offline-banner{display:none;background:rgba(255,149,0,.1);border:.5px solid rgba(255,149,0,.3);border-radius:var(--rs);padding:10px 14px;font-size:13px;color:#7a4800;margin-bottom:12px}
+    .offline-banner.show{display:block}
+    @media(prefers-color-scheme:dark){.offline-banner{color:#ffa733}}
 
     /* Summary */
-    .summary-block { background:var(--navy); border-radius:var(--r); padding:18px; margin-bottom:12px; }
-    .sum-title { font-size:10px; color:rgba(255,255,255,.35); letter-spacing:.8px; text-transform:uppercase; margin-bottom:14px; }
-    .sum-row { display:flex; justify-content:space-between; align-items:baseline; padding:8px 0; gap:14px; border-bottom:.5px solid rgba(255,255,255,.07); }
-    .sum-row:last-child { border-bottom:none; }
-    .sum-k { font-size:12px; color:rgba(255,255,255,.4); flex-shrink:0; }
-    .sum-v { font-size:13px; color:#fff; font-weight:500; text-align:right; word-break:break-all; }
-    .cap-badge-ok   { font-size:11px; color:#52d66c; margin-left:5px; }
-    .cap-badge-few  { font-size:11px; color:#ffa733; margin-left:5px; }
-    .cap-badge-full { font-size:11px; color:#ff6b6b; margin-left:5px; }
+    .summary-block{background:var(--navy);border-radius:var(--r);padding:18px;margin-bottom:12px}
+    .sum-title{font-size:10px;color:rgba(255,255,255,.35);letter-spacing:.8px;text-transform:uppercase;margin-bottom:14px}
+    .sum-row{display:flex;justify-content:space-between;align-items:baseline;padding:8px 0;gap:14px;border-bottom:.5px solid rgba(255,255,255,.07)}
+    .sum-row:last-child{border-bottom:none}
+    .sum-k{font-size:12px;color:rgba(255,255,255,.4);flex-shrink:0}
+    .sum-v{font-size:13px;color:#fff;font-weight:500;text-align:right;word-break:break-all}
+    .cap-badge-ok{font-size:11px;color:#52d66c;margin-left:5px}
+    .cap-badge-few{font-size:11px;color:#ffa733;margin-left:5px}
+    .cap-badge-full{font-size:11px;color:#ff6b6b;margin-left:5px}
 
     /* Buttons */
-    .btn-row { display:flex; gap:10px; margin-top:4px; }
-    .btn { flex:1; padding:15px; border-radius:var(--rs); font-size:15px; font-weight:600; cursor:pointer; border:none; transition:all .15s; font-family:inherit; min-height:var(--touch); }
-    .btn-primary { background:var(--gold); color:var(--navy); }
-    .btn-primary:hover:not(:disabled) { background:var(--gold-d); }
-    .btn-primary:active:not(:disabled) { transform:scale(.98); }
-    .btn-primary:disabled { opacity:.45; cursor:not-allowed; }
-    .btn-ghost { background:transparent; color:var(--muted); border:1px solid var(--border2); }
-    .btn-ghost:hover { background:var(--s2); }
+    .btn-row{display:flex;gap:10px;margin-top:4px}
+    .btn{flex:1;padding:15px;border-radius:var(--rs);font-size:15px;font-weight:600;cursor:pointer;border:none;transition:all .15s;font-family:inherit;min-height:var(--touch)}
+    .btn-primary{background:var(--gold);color:var(--navy)}
+    .btn-primary:hover:not(:disabled){background:var(--gold-d)}
+    .btn-primary:active:not(:disabled){transform:scale(.98)}
+    .btn-primary:disabled{opacity:.45;cursor:not-allowed}
+    .btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border2)}
+    .btn-ghost:hover{background:var(--s2)}
 
     /* Pages */
-    .page { display:none; }
-    .page.active { display:block; animation:fadeIn .2s ease; }
-    @keyframes fadeIn { from{opacity:0;transform:translateY(5px)} to{opacity:1;transform:none} }
+    .page{display:none}
+    .page.active{display:block;animation:fadeIn .2s ease}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
 
     /* Success */
-    .success-wrap { background:var(--surface); border-radius:var(--r); border:.5px solid var(--border); padding:40px 20px 36px; text-align:center; box-shadow:var(--shadow); }
-    .ok-circle { width:72px; height:72px; border-radius:50%; background:rgba(52,199,89,.1); border:2px solid var(--ok); display:flex; align-items:center; justify-content:center; font-size:32px; margin:0 auto 20px; }
-    .success-wrap h2 { font-size:20px; font-weight:600; margin-bottom:8px; }
-    .success-wrap p  { font-size:14px; color:var(--muted); line-height:1.7; }
+    .success-wrap{background:var(--surface);border-radius:var(--r);border:.5px solid var(--border);padding:40px 20px 36px;text-align:center;box-shadow:var(--shadow)}
+    .ok-circle{width:72px;height:72px;border-radius:50%;background:rgba(52,199,89,.1);border:2px solid var(--ok);display:flex;align-items:center;justify-content:center;font-size:32px;margin:0 auto 20px}
+    .success-wrap h2{font-size:20px;font-weight:600;margin-bottom:8px}
+    .success-wrap p{font-size:14px;color:var(--muted);line-height:1.7}
 
     /* Loading */
-    .loading-overlay { position:fixed; inset:0; background:rgba(0,0,0,.5); display:none; align-items:center; justify-content:center; z-index:999; }
-    .loading-overlay.show { display:flex; }
-    .loading-box { background:var(--surface); border-radius:var(--r); padding:28px 36px; text-align:center; box-shadow:0 8px 30px rgba(0,0,0,.2); width:220px; }
-    .spinner { width:36px; height:36px; border:3px solid var(--border2); border-top-color:var(--gold); border-radius:50%; animation:spin .75s linear infinite; margin:0 auto 13px; }
-    @keyframes spin { to{transform:rotate(360deg)} }
-    .loading-box p { font-size:14px; color:var(--muted); }
+    .loading-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:999}
+    .loading-overlay.show{display:flex}
+    .loading-box{background:var(--surface);border-radius:var(--r);padding:28px 36px;text-align:center;box-shadow:0 8px 30px rgba(0,0,0,.2);width:220px}
+    .spinner{width:36px;height:36px;border:3px solid var(--border2);border-top-color:var(--gold);border-radius:50%;animation:spin .75s linear infinite;margin:0 auto 13px}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .loading-box p{font-size:14px;color:var(--muted)}
 
     /* Mobile */
     @media(max-width:520px){
-      .main { padding:12px 12px 80px; }
-      .svc-grid { grid-template-columns:1fr; }
-      .time-grid { grid-template-columns:repeat(3,1fr); gap:8px; }
-      .field-row { grid-template-columns:1fr; gap:10px; }
-      .ts-time { font-size:16px; }
+      .main{padding:12px 12px 80px}
+      .svc-grid{grid-template-columns:1fr}
+      .time-grid{grid-template-columns:repeat(3,1fr);gap:8px}
+      .field-row{grid-template-columns:1fr;gap:10px}
+      .ts-time{font-size:16px}
     }
-    @media(max-width:360px){
-      .time-grid { grid-template-columns:repeat(2,1fr); }
-    }
+    @media(max-width:360px){.time-grid{grid-template-columns:repeat(2,1fr)}}
   </style>
 </head>
 <body>
@@ -325,11 +276,17 @@
 
 <main class="main">
 
-  <!-- ★ 商家說明欄（由 JS 動態顯示） -->
-  <div class="notice-board" id="notice-board" style="display:none">
+  <!-- 商家說明欄（由 loadSettings 填入） -->
+  <div class="notice-board" id="notice-board">
     <div class="notice-title">📋 預約須知</div>
     <div class="notice-body" id="notice-body"></div>
-    <img id="notice-img" class="notice-img" style="display:none" alt="預約說明圖片" />
+    <!--
+      ★ 圖片說明：
+      noticeImgUrl 從 Code.gs 的 driveImageToBase64() 回傳，
+      已是 "data:image/jpeg;base64,..." 格式，
+      直接設定為 img.src 即可顯示，完全不需要任何網路請求。
+    -->
+    <img id="notice-img" class="notice-img" alt="預約說明圖片" style="display:none" />
   </div>
 
   <!-- 步驟列 -->
@@ -341,16 +298,13 @@
 
   <div class="offline-banner" id="offline-banner">⚠️ 目前使用備用模式，選項可能不是最新狀態。</div>
 
-  <!-- ════ Page 1 ════ -->
+  <!-- Page 1 -->
   <div class="page active" id="page1">
     <div class="card">
       <div class="card-label">服務項目<span class="req">*</span></div>
-      <div class="svc-grid" id="svc-grid">
-        <div style="grid-column:1/-1;padding:16px;text-align:center;font-size:13px;color:var(--hint)">讀取中...</div>
-      </div>
+      <div class="svc-grid" id="svc-grid"><div style="grid-column:1/-1;padding:16px;text-align:center;font-size:13px;color:var(--hint)">讀取中...</div></div>
       <div class="err" id="err-service">請選擇服務項目</div>
     </div>
-
     <div class="card">
       <div class="card-label">預約日期<span class="req">*</span></div>
       <div class="field">
@@ -363,15 +317,13 @@
       <div class="err" id="err-time">請選擇時段</div>
       <div class="avail-bar" id="avail-bar"><div class="avail-dot"></div><span id="avail-text"></span></div>
     </div>
-
     <div class="btn-row">
       <button class="btn btn-primary" onclick="validatePage1()">下一步：填寫車輛資料 →</button>
     </div>
   </div>
 
-  <!-- ════ Page 2 ════ -->
+  <!-- Page 2 -->
   <div class="page" id="page2">
-
     <div class="card">
       <div class="card-label">車輛資料</div>
       <div class="field">
@@ -382,12 +334,11 @@
       <div class="field">
         <label>車輛 VIN 碼（17碼）<span class="opt">選填</span></label>
         <input type="text" id="vin" class="vin-field" placeholder="選填：17 位 VIN 碼" maxlength="17" inputmode="text" autocomplete="off"
-               oninput="this.value=this.value.toUpperCase().replace(/[^A-HJ-NPR-Z0-9]/g,'');" />
+               oninput="this.value=this.value.toUpperCase().replace(/[^A-HJ-NPR-Z0-9]/g,'')" />
         <div class="hint">可於行照或前擋風玻璃左前沿查詢，不含 I、O、Q</div>
         <div class="err" id="err-vin">VIN 碼需填入完整 17 碼</div>
       </div>
     </div>
-
     <div class="card">
       <div class="card-label">聯絡資料</div>
       <div class="field-row">
@@ -412,19 +363,14 @@
         <textarea id="notes" placeholder="損傷部位、碰撞位置、特殊需求..."></textarea>
       </div>
     </div>
-
     <div class="card">
       <div class="card-label" id="category-label">類別區分<span class="opt">選填</span></div>
       <div class="cat-grid" id="cat-pills"><span style="font-size:13px;color:var(--hint)">讀取中...</span></div>
     </div>
-
     <div class="card">
       <div class="card-label">保險公司<span class="opt">選填</span></div>
-      <div class="field">
-        <select id="insurer"><option value="">-- 請選擇保險公司（選填）--</option></select>
-      </div>
+      <div class="field"><select id="insurer"><option value="">-- 請選擇保險公司（選填）--</option></select></div>
     </div>
-
     <div class="card" id="contract-card" style="display:none">
       <div class="card-label">合約狀態<span class="staff-tag">員工</span></div>
       <div class="contract-toggle">
@@ -433,19 +379,16 @@
       </div>
       <div style="margin-top:8px;font-size:11px;color:var(--hint)">點選後再點一次可取消</div>
     </div>
-
     <div class="info-box staff-info" id="staff-info-box" style="display:none">
-      <strong>員工模式提示</strong>
-      您正以員工身份代為填寫。虛線框時段/類別為員工專屬，車主看不到。
+      <strong>員工模式提示</strong>虛線框時段/類別為員工專屬，車主看不到。
     </div>
-
     <div class="btn-row">
       <button class="btn btn-ghost"   onclick="goPage(1)">← 返回</button>
       <button class="btn btn-primary" onclick="validatePage2()">確認預約內容 →</button>
     </div>
   </div>
 
-  <!-- ════ Page 3 ════ -->
+  <!-- Page 3 -->
   <div class="page" id="page3">
     <div class="summary-block">
       <div class="sum-title">預約確認明細</div>
@@ -473,7 +416,7 @@
     </div>
   </div>
 
-  <!-- ════ Success ════ -->
+  <!-- Success -->
   <div class="page" id="page-success">
     <div class="success-wrap">
       <div class="ok-circle">✓</div>
@@ -491,481 +434,323 @@
 <script>
 "use strict";
 
-let IS_STAFF         = false;
-let STAFF_CODE_VAL   = "";
-let selectedService  = "";
-let selectedTime     = "";
-let selectedCategory = "";
-let contractState    = "";
-let slotSettings     = [];
-let currentAvail     = {};
-let isOffline        = false;
-let availTimer       = null;
+let IS_STAFF=false,STAFF_CODE_VAL="",selectedService="",selectedTime="",
+    selectedCategory="",contractState="",slotSettings=[],currentAvail={},
+    isOffline=false,availTimer=null;
 
-// ─── 初始化 ────────────────────────────────────────────────
-document.addEventListener("DOMContentLoaded", () => {
-  document.title = APP_CONFIG.SHOP_NAME + " — 線上預約";
-  document.getElementById("h-name").textContent     = APP_CONFIG.SHOP_NAME + " " + APP_CONFIG.SHOP_SUBTITLE;
-  document.getElementById("h-initial").textContent  = APP_CONFIG.SHOP_NAME.charAt(0);
-  document.getElementById("staff-badge").textContent = APP_CONFIG.STAFF_LABEL;
-
-  STAFF_CODE_VAL = new URLSearchParams(window.location.search).get("staff") || "";
-
+document.addEventListener("DOMContentLoaded",()=>{
+  document.title=APP_CONFIG.SHOP_NAME+" — 線上預約";
+  document.getElementById("h-name").textContent=APP_CONFIG.SHOP_NAME+" "+APP_CONFIG.SHOP_SUBTITLE;
+  document.getElementById("h-initial").textContent=APP_CONFIG.SHOP_NAME.charAt(0);
+  document.getElementById("staff-badge").textContent=APP_CONFIG.STAFF_LABEL;
+  STAFF_CODE_VAL=new URLSearchParams(window.location.search).get("staff")||"";
   setDateConstraints();
   renderTimeSlotsEmpty();
-  loadSettings();  // 商家說明欄由 loadSettings 完成後呼叫 renderNoticeBoard
+  loadSettings();
 });
 
-// ─── 商家說明欄 ────────────────────────────────────────────
-// text / imageUrl：優先使用 Sheets 回傳值，離線時用 APP_CONFIG 備用
-
-/**
- * 自動把 Google Drive 分享連結轉成可嵌入圖片的直連網址
- * 輸入：https://drive.google.com/file/d/FILE_ID/view?...
- * 輸出：https://drive.google.com/uc?export=view&id=FILE_ID
- */
-function convertDriveUrl(url) {
-  if (!url) return "";
-  // 已是直連格式，不用轉換
-  if (url.includes("uc?export=view")) return url;
-  // 抓出 /d/FILE_ID/ 格式的 ID
-  const m = url.match(/\/d\/([^\/\?&]+)/);
-  if (m && m[1]) {
-    return "https://drive.google.com/uc?export=view&id=" + m[1];
-  }
-  // 其他格式（非 Drive）直接回傳原網址
-  return url;
+function setDateConstraints(){
+  const el=document.getElementById("appt-date");
+  el.min=fmtDate(addDays(new Date(),APP_CONFIG.MIN_DAYS_AHEAD));
+  el.max=fmtDate(addDays(new Date(),APP_CONFIG.MAX_DAYS_AHEAD));
 }
+function addDays(d,n){const r=new Date(d);r.setDate(r.getDate()+n);return r}
+function fmtDate(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
+function isClosedDay(s){if(!s)return false;return APP_CONFIG.CLOSED_WEEKDAYS.includes(new Date(s+"T12:00:00").getDay())}
 
-function renderNoticeBoard(text, imageUrl) {
-  const t    = text     || APP_CONFIG.NOTICE_TEXT      || "";
-  const rawU = imageUrl || APP_CONFIG.NOTICE_IMAGE_URL || "";
-  const u    = convertDriveUrl(rawU);   // ★ 自動轉換 Drive 連結
+// ── 商家說明欄 ──────────────────────────────────────────────
+function renderNoticeBoard(text, imgDataUri){
+  const t = text || APP_CONFIG.NOTICE_TEXT || "";
+  // imgDataUri 是從 Code.gs driveImageToBase64() 回傳的 Base64 data URI
+  // 直接設定為 img.src 即可，不需要任何網路請求
+  const u = imgDataUri || APP_CONFIG.NOTICE_IMAGE_URL || "";
+  if(!t && !u) return;
 
-  if (!t && !u) return;
+  document.getElementById("notice-board").style.display="block";
+  if(t) document.getElementById("notice-body").textContent=t;
 
-  document.getElementById("notice-board").style.display = "block";
-
-  if (t) {
-    document.getElementById("notice-body").textContent = t;
-  }
-
-  if (u) {
-    const img = document.getElementById("notice-img");
-    img.src   = u;
-    img.style.display = "block";
-    // ★ 圖片載入失敗時顯示提示，不影響表單使用
-    img.onerror = () => {
-      img.style.display = "none";
-      const warn = document.createElement("div");
-      warn.style.cssText = "font-size:12px;color:var(--hint);margin-top:8px;padding:8px 12px;background:var(--s2);border-radius:var(--rs)";
-      warn.textContent   = "⚠️ 圖片無法載入，請確認圖片連結是否公開分享";
-      img.parentNode.insertBefore(warn, img.nextSibling);
-    };
+  if(u){
+    const img=document.getElementById("notice-img");
+    img.src=u;
+    img.style.display="block";
+    // 如果是 Base64 data URI，不會有網路問題；只有外部 URL 才可能失敗
+    if(!u.startsWith("data:")){
+      img.onerror=()=>{
+        img.style.display="none";
+        const w=document.createElement("div");
+        w.style.cssText="font-size:12px;color:var(--hint);margin-top:8px;padding:8px 12px;background:var(--s2);border-radius:var(--rs)";
+        w.textContent="⚠️ 圖片無法載入";
+        img.parentNode.insertBefore(w,img.nextSibling);
+      };
+    }
   }
 }
 
-// ─── 日期限制 ───────────────────────────────────────────────
-function setDateConstraints() {
-  const el = document.getElementById("appt-date");
-  el.min = fmtDate(addDays(new Date(), APP_CONFIG.MIN_DAYS_AHEAD));
-  el.max = fmtDate(addDays(new Date(), APP_CONFIG.MAX_DAYS_AHEAD));
-}
-function addDays(d, n) { const r = new Date(d); r.setDate(r.getDate()+n); return r; }
-function fmtDate(d) {
-  return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
-}
-function isClosedDay(s) {
-  if (!s) return false;
-  return APP_CONFIG.CLOSED_WEEKDAYS.includes(new Date(s+"T12:00:00").getDay());
-}
+// ── 讀取設定 ────────────────────────────────────────────────
+async function loadSettings(){
+  try{
+    const url=APP_CONFIG.SCRIPT_URL+"?action=getSettings"+(STAFF_CODE_VAL?"&staff="+encodeURIComponent(STAFF_CODE_VAL):"");
+    const ctrl=new AbortController();const tid=setTimeout(()=>ctrl.abort(),15000);
+    const res=await fetch(url,{signal:ctrl.signal});clearTimeout(tid);
+    const data=await res.json();
+    if(!data.success) throw new Error(data.error||"failed");
 
-// ─── 讀取設定 ───────────────────────────────────────────────
-async function loadSettings() {
-  try {
-    const url  = APP_CONFIG.SCRIPT_URL + "?action=getSettings"
-               + (STAFF_CODE_VAL ? "&staff=" + encodeURIComponent(STAFF_CODE_VAL) : "");
-    const ctrl = new AbortController();
-    const tid  = setTimeout(() => ctrl.abort(), 8000);
-    const res  = await fetch(url, { signal: ctrl.signal });
-    clearTimeout(tid);
-    const data = await res.json();
-    if (!data.success) throw new Error(data.error || "failed");
+    IS_STAFF=!!data.isStaff; isOffline=false;
+    const allSlots=(data.timeSlots||[]).map(s=>parseTimeSlot(s));
+    slotSettings=IS_STAFF?allSlots:allSlots.filter(s=>!s.staffOnly);
 
-    IS_STAFF  = !!data.isStaff;
-    isOffline = false;
-
-    // ★ 後端回傳全部時段（含 staffOnly），前端根據 IS_STAFF 過濾
-    const allSlots = (data.timeSlots || []).map(s => parseTimeSlot(s));
-    slotSettings   = IS_STAFF ? allSlots : allSlots.filter(s => !s.staffOnly);
-
-    // ★ 商家說明：優先使用 Sheets 的資料
-    renderNoticeBoard(data.noticeText || "", data.noticeImgUrl || "");
-
-    renderServices(data.services     || []);
-    renderCategoryPills(data.categories || []);
-    renderInsurerSelect(data.insurers   || []);
+    // ★ noticeImgUrl 已是 Base64 data URI，直接傳給 renderNoticeBoard
+    renderNoticeBoard(data.noticeText||"", data.noticeImgUrl||"");
+    renderServices(data.services||[]);
+    renderCategoryPills(data.categories||[]);
+    renderInsurerSelect(data.insurers||[]);
     applyModeUI();
-
-  } catch(e) {
-    console.warn("Sheets 讀取失敗，使用備用：", e.message);
-    isOffline  = true;
-    IS_STAFF   = !!STAFF_CODE_VAL;
-
-    const allFallback = APP_CONFIG.FALLBACK_TIMES;
-    slotSettings = IS_STAFF ? allFallback : allFallback.filter(s => !s.staffOnly);
-
-    // 離線時使用 APP_CONFIG 備用說明
-    renderNoticeBoard("", "");
-
+  }catch(e){
+    console.warn("Sheets 讀取失敗，使用備用：",e.message);
+    isOffline=true; IS_STAFF=!!STAFF_CODE_VAL;
+    const all=APP_CONFIG.FALLBACK_TIMES;
+    slotSettings=IS_STAFF?all:all.filter(s=>!s.staffOnly);
+    renderNoticeBoard("","");
     renderServices(APP_CONFIG.FALLBACK_SERVICES);
-    renderCategoryPills(IS_STAFF
-      ? APP_CONFIG.FALLBACK_CATEGORIES
-      : APP_CONFIG.FALLBACK_CATEGORIES.filter(c => c.publicVisible));
+    renderCategoryPills(IS_STAFF?APP_CONFIG.FALLBACK_CATEGORIES:APP_CONFIG.FALLBACK_CATEGORIES.filter(c=>c.publicVisible));
     renderInsurerSelect(APP_CONFIG.FALLBACK_INSURERS);
     applyModeUI();
     document.getElementById("offline-banner").classList.add("show");
   }
 }
 
-/**
- * 把 Apps Script 回傳的 { time:"09:00", capacity:2, staffOnly:false }
- * 或 FALLBACK 的 { hour:9, minute:0, label:"09:00", capacity:2, staffOnly:false }
- * 統一轉成 { hour, minute, label, capacity, staffOnly }
- */
-function parseTimeSlot(s) {
-  if (typeof s.hour === "number") return s;
-  const parts    = String(s.time || "").split(":");
-  const hour     = parseInt(parts[0], 10) || 0;
-  const minute   = parseInt(parts[1], 10) || 0;
-  const label    = String(s.time || "");
-  const staffOnly = !!s.staffOnly;
-  return { hour, minute, label, capacity: s.capacity || 2, staffOnly };
+function parseTimeSlot(s){
+  if(typeof s.hour==="number") return s;
+  const parts=String(s.time||"").split(":");
+  return{hour:parseInt(parts[0],10)||0,minute:parseInt(parts[1],10)||0,
+         label:String(s.time||""),capacity:s.capacity||2,staffOnly:!!s.staffOnly};
 }
 
-// ─── 員工模式 ───────────────────────────────────────────────
-function applyModeUI() {
-  if (!IS_STAFF) return;
+function applyModeUI(){
+  if(!IS_STAFF) return;
   document.getElementById("app-header").classList.add("staff-mode");
-  document.getElementById("contract-card").style.display  = "block";
-  document.getElementById("staff-info-box").style.display = "block";
-  document.getElementById("sum-staff-rows").style.display = "block";
-  const lbl = document.getElementById("category-label");
-  if (!lbl.querySelector(".staff-tag")) {
-    const t = document.createElement("span"); t.className = "staff-tag"; t.textContent = "全選項"; lbl.appendChild(t);
-  }
+  document.getElementById("contract-card").style.display="block";
+  document.getElementById("staff-info-box").style.display="block";
+  document.getElementById("sum-staff-rows").style.display="block";
+  const lbl=document.getElementById("category-label");
+  if(!lbl.querySelector(".staff-tag")){const t=document.createElement("span");t.className="staff-tag";t.textContent="全選項";lbl.appendChild(t)}
 }
 
-// ─── 服務選項 ───────────────────────────────────────────────
-const SVC_ICONS = ["🚗","⚙️","🔧","🛞","🔋","🪟","🧰"];
-function renderServices(services) {
-  const grid = document.getElementById("svc-grid");
-  grid.innerHTML = "";
-  services.forEach((svc, i) => {
-    const wrap = document.createElement("div");
-    wrap.className = "svc-opt";
-    const chk  = document.createElement("div"); chk.className = "svc-check"; chk.textContent = "✓";
-    const icon = document.createElement("span"); icon.className = "svc-icon"; icon.textContent = SVC_ICONS[i % SVC_ICONS.length];
-    const name = document.createElement("div"); name.className = "svc-name"; name.textContent = svc.name;
-    wrap.append(chk, icon, name);
-    if (svc.desc) { const d = document.createElement("div"); d.className = "svc-desc"; d.textContent = svc.desc; wrap.appendChild(d); }
-    wrap.onclick = () => {
-      document.querySelectorAll(".svc-opt").forEach(c => c.classList.remove("selected"));
-      wrap.classList.add("selected"); selectedService = svc.name; showErr("err-service", false);
-    };
+const SVC_ICONS=["🚗","⚙️","🔧","🛞","🔋","🪟","🧰"];
+function renderServices(services){
+  const grid=document.getElementById("svc-grid"); grid.innerHTML="";
+  services.forEach((svc,i)=>{
+    const wrap=document.createElement("div"); wrap.className="svc-opt";
+    const chk=document.createElement("div"); chk.className="svc-check"; chk.textContent="✓";
+    const icon=document.createElement("span"); icon.className="svc-icon"; icon.textContent=SVC_ICONS[i%SVC_ICONS.length];
+    const name=document.createElement("div"); name.className="svc-name"; name.textContent=svc.name;
+    wrap.append(chk,icon,name);
+    if(svc.desc){const d=document.createElement("div");d.className="svc-desc";d.textContent=svc.desc;wrap.appendChild(d)}
+    wrap.onclick=()=>{document.querySelectorAll(".svc-opt").forEach(c=>c.classList.remove("selected"));wrap.classList.add("selected");selectedService=svc.name;showErr("err-service",false)};
     grid.appendChild(wrap);
   });
 }
 
-// ─── 類別 Pills ─────────────────────────────────────────────
-function renderCategoryPills(categories) {
-  const box = document.getElementById("cat-pills");
-  box.innerHTML = ""; selectedCategory = "";
-  if (!categories.length) { const n = document.createElement("span"); n.style.cssText="font-size:13px;color:var(--hint)"; n.textContent="無可選類別"; box.appendChild(n); return; }
-  categories.forEach(cat => {
-    const el = document.createElement("div");
-    const staffOnly = IS_STAFF && !cat.publicVisible;
-    el.className  = "cat-opt" + (staffOnly ? " staff-only" : "");
-    el.textContent = cat.desc || cat.name;
-    el.dataset.value = cat.name;
-    if (staffOnly) el.title = "此選項僅員工可見";
-    el.onclick = () => {
-      if (selectedCategory === cat.name) { el.classList.remove("selected"); selectedCategory = ""; return; }
-      document.querySelectorAll(".cat-opt").forEach(c => c.classList.remove("selected"));
-      el.classList.add("selected"); selectedCategory = cat.name;
+function renderCategoryPills(categories){
+  const box=document.getElementById("cat-pills"); box.innerHTML=""; selectedCategory="";
+  if(!categories.length){const n=document.createElement("span");n.style.cssText="font-size:13px;color:var(--hint)";n.textContent="無可選類別";box.appendChild(n);return}
+  categories.forEach(cat=>{
+    const el=document.createElement("div");
+    const so=IS_STAFF&&!cat.publicVisible;
+    el.className="cat-opt"+(so?" staff-only":""); el.textContent=cat.desc||cat.name; el.dataset.value=cat.name;
+    if(so) el.title="此選項僅員工可見";
+    el.onclick=()=>{
+      if(selectedCategory===cat.name){el.classList.remove("selected");selectedCategory="";return}
+      document.querySelectorAll(".cat-opt").forEach(c=>c.classList.remove("selected"));
+      el.classList.add("selected"); selectedCategory=cat.name;
     };
     box.appendChild(el);
   });
 }
 
-// ─── 保險公司 ───────────────────────────────────────────────
-function renderInsurerSelect(insurers) {
-  const sel = document.getElementById("insurer");
-  sel.innerHTML = ""; const def = document.createElement("option"); def.value=""; def.textContent="-- 請選擇保險公司（選填）--"; sel.appendChild(def);
-  insurers.forEach(name => { const opt = document.createElement("option"); opt.value=name; opt.textContent=name; sel.appendChild(opt); });
+function renderInsurerSelect(insurers){
+  const sel=document.getElementById("insurer"); sel.innerHTML="";
+  const def=document.createElement("option"); def.value=""; def.textContent="-- 請選擇保險公司（選填）--"; sel.appendChild(def);
+  insurers.forEach(name=>{const opt=document.createElement("option");opt.value=name;opt.textContent=name;sel.appendChild(opt)});
 }
 
-// ─── 合約狀態 ───────────────────────────────────────────────
-function selectContract(type) {
-  if (contractState === type) {
-    contractState = "";
-    document.getElementById("btn-contract").className    = "contract-btn";
-    document.getElementById("btn-noncontract").className = "contract-btn";
-    return;
-  }
-  contractState = type;
-  document.getElementById("btn-contract").className    = "contract-btn" + (type==="contract"    ? " sel-contract"    : "");
-  document.getElementById("btn-noncontract").className = "contract-btn" + (type==="noncontract" ? " sel-noncontract" : "");
+function selectContract(type){
+  if(contractState===type){contractState="";document.getElementById("btn-contract").className="contract-btn";document.getElementById("btn-noncontract").className="contract-btn";return}
+  contractState=type;
+  document.getElementById("btn-contract").className="contract-btn"+(type==="contract"?" sel-contract":"");
+  document.getElementById("btn-noncontract").className="contract-btn"+(type==="noncontract"?" sel-noncontract":"");
 }
 
-// ════════════════════════════════════════════════════════════
-//  ★★ 時段渲染 ★★
-//  小時/分鐘用獨立 span，冒號由 CSS ::after 插入
-//  DOM 裡不存在完整時間字串，瀏覽器無法解析成 Date
-// ════════════════════════════════════════════════════════════
-
-function makeSlotEl(slot, capText, capClass, isFull, isLoading) {
-  const el = document.createElement("div");
-  el.className = "time-slot" + (isFull?" ts-full":"") + (isLoading?" ts-loading":"");
-
-  const tWrap = document.createElement("div");
-  tWrap.className = "ts-time";
-
-  const spanH = document.createElement("span");
-  spanH.className   = "ts-hh";
-  spanH.textContent = String(slot.hour).padStart(2,"0");   // "09"（純數字，無冒號）
-
-  const spanM = document.createElement("span");
-  spanM.className   = "ts-mm";
-  spanM.textContent = String(slot.minute).padStart(2,"0"); // "00"（純數字）
-
-  tWrap.append(spanH, spanM); // 冒號由 CSS ::after 負責，DOM 完全沒有冒號
-
-  const capEl = document.createElement("div");
-  capEl.className   = "ts-cap" + (capClass?" "+capClass:"");
-  capEl.textContent = capText;
-
-  el.append(tWrap, capEl);
+// ── 時段渲染（CSS::after 插入冒號，DOM 不含時間字串）──────
+function makeSlotEl(slot,capText,capClass,isFull,isLoading){
+  const el=document.createElement("div");
+  el.className="time-slot"+(isFull?" ts-full":"")+(isLoading?" ts-loading":"");
+  const tWrap=document.createElement("div"); tWrap.className="ts-time";
+  const spanH=document.createElement("span"); spanH.className="ts-hh"; spanH.textContent=String(slot.hour).padStart(2,"0");
+  const spanM=document.createElement("span"); spanM.className="ts-mm"; spanM.textContent=String(slot.minute).padStart(2,"0");
+  tWrap.append(spanH,spanM);
+  const capEl=document.createElement("div"); capEl.className="ts-cap"+(capClass?" "+capClass:""); capEl.textContent=capText;
+  el.append(tWrap,capEl);
   return el;
 }
 
-function renderTimeSlotsEmpty() {
-  const grid = document.getElementById("time-grid");
-  grid.innerHTML = "";
-  const el = document.createElement("div");
-  el.style.cssText = "grid-column:1/-1;padding:16px;text-align:center;font-size:13px;color:var(--hint)";
-  el.textContent = "請先選擇日期";
-  grid.appendChild(el);
-  hideAvailBar();
+function renderTimeSlotsEmpty(){
+  const grid=document.getElementById("time-grid"); grid.innerHTML="";
+  const el=document.createElement("div"); el.style.cssText="grid-column:1/-1;padding:16px;text-align:center;font-size:13px;color:var(--hint)"; el.textContent="請先選擇日期";
+  grid.appendChild(el); hideAvailBar();
 }
-
-function renderTimeSlotsLoading() {
-  const grid = document.getElementById("time-grid");
-  grid.innerHTML = "";
-  slotSettings.forEach(slot => {
-    const el = makeSlotEl(slot, "查詢中", "", false, true);
+function renderTimeSlotsLoading(){
+  const grid=document.getElementById("time-grid"); grid.innerHTML="";
+  slotSettings.forEach(slot=>{const el=makeSlotEl(slot,"查詢中","",false,true);grid.appendChild(el)});
+}
+function renderTimeSlots(slots,avail){
+  const grid=document.getElementById("time-grid"); grid.innerHTML="";
+  slots.forEach(slot=>{
+    const info=avail[slot.label]; const remaining=info?info.remaining:slot.capacity; const isFull=remaining<=0;
+    let capText="",capClass="";
+    if(info){if(isFull){capText="已額滿";capClass="cap-none"}else if(remaining===1){capText="尚可預約 1 台";capClass="cap-few"}else{capText="尚可預約 "+remaining+" 台";capClass="cap-ok"}}
+    else capText="尚可預約 "+slot.capacity+" 台";
+    const el=makeSlotEl(slot,capText,capClass,isFull,false);
+    if(slot.staffOnly&&IS_STAFF) el.classList.add("ts-staff-only");
+    if(!isFull) el.onclick=()=>{document.querySelectorAll(".time-slot").forEach(t=>t.classList.remove("ts-selected"));el.classList.add("ts-selected");selectedTime=slot.label;showErr("err-time",false)};
+    if(selectedTime===slot.label&&!isFull) el.classList.add("ts-selected");
     grid.appendChild(el);
   });
 }
 
-function renderTimeSlots(slots, avail) {
-  const grid = document.getElementById("time-grid");
-  grid.innerHTML = "";
-  slots.forEach(slot => {
-    const info      = avail[slot.label];
-    const remaining = info ? info.remaining : slot.capacity;
-    const isFull    = remaining <= 0;
-    let capText = "", capClass = "";
-    if (info) {
-      if (isFull)            { capText="已額滿";                       capClass="cap-none"; }
-      else if (remaining===1){ capText="尚可預約 1 台";                capClass="cap-few";  }
-      else                   { capText="尚可預約 "+remaining+" 台";    capClass="cap-ok";   }
-    } else {
-      capText = "尚可預約 "+slot.capacity+" 台";
-    }
-
-    const el = makeSlotEl(slot, capText, capClass, isFull, false);
-
-    // 員工專屬時段加虛線框標示
-    if (slot.staffOnly && IS_STAFF) el.classList.add("ts-staff-only");
-
-    if (!isFull) {
-      el.onclick = () => {
-        document.querySelectorAll(".time-slot").forEach(t => t.classList.remove("ts-selected"));
-        el.classList.add("ts-selected"); selectedTime = slot.label; showErr("err-time", false);
-      };
-    }
-    if (selectedTime === slot.label && !isFull) el.classList.add("ts-selected");
-    grid.appendChild(el);
-  });
+function onDateChange(){
+  showErr("err-date",false); selectedTime="";
+  const dateVal=document.getElementById("appt-date").value;
+  const cl=document.getElementById("date-closed");
+  if(isClosedDay(dateVal)){cl.style.display="block";renderTimeSlotsEmpty();return}
+  cl.style.display="none";
+  if(!dateVal){renderTimeSlotsEmpty();return}
+  renderTimeSlotsLoading(); showAvailBar("","查詢名額中...");
+  clearTimeout(availTimer); availTimer=setTimeout(()=>fetchAvailability(dateVal),400);
 }
 
-// ─── 日期變更 ───────────────────────────────────────────────
-function onDateChange() {
-  showErr("err-date", false); selectedTime = "";
-  const dateVal = document.getElementById("appt-date").value;
-  const cl = document.getElementById("date-closed");
-  if (isClosedDay(dateVal)) { cl.style.display="block"; renderTimeSlotsEmpty(); return; }
-  cl.style.display = "none";
-  if (!dateVal) { renderTimeSlotsEmpty(); return; }
-  renderTimeSlotsLoading();
-  showAvailBar("", "查詢名額中...");
-  clearTimeout(availTimer);
-  availTimer = setTimeout(() => fetchAvailability(dateVal), 400);
+async function fetchAvailability(date){
+  if(isOffline){currentAvail={};renderTimeSlots(slotSettings,{});hideAvailBar();return}
+  try{
+    const ctrl=new AbortController(); setTimeout(()=>ctrl.abort(),8000);
+    const res=await fetch(APP_CONFIG.SCRIPT_URL+"?action=getAvailability&date="+encodeURIComponent(date),{signal:ctrl.signal});
+    const data=await res.json();
+    if(!data.success) throw new Error(data.error);
+    currentAvail=data.availability; renderTimeSlots(slotSettings,currentAvail); updateAvailBar(currentAvail);
+  }catch(e){currentAvail={};renderTimeSlots(slotSettings,{});hideAvailBar()}
 }
 
-async function fetchAvailability(date) {
-  if (isOffline) { currentAvail={}; renderTimeSlots(slotSettings,{}); hideAvailBar(); return; }
-  try {
-    const ctrl = new AbortController();
-    setTimeout(() => ctrl.abort(), 8000);
-    const res  = await fetch(APP_CONFIG.SCRIPT_URL+"?action=getAvailability&date="+encodeURIComponent(date), { signal:ctrl.signal });
-    const data = await res.json();
-    if (!data.success) throw new Error(data.error);
-    currentAvail = data.availability;
-    renderTimeSlots(slotSettings, currentAvail);
-    updateAvailBar(currentAvail);
-  } catch(e) { currentAvail={}; renderTimeSlots(slotSettings,{}); hideAvailBar(); }
-}
-
-function updateAvailBar(avail) {
-  const vals=Object.values(avail); if (!vals.length){hideAvailBar();return;}
+function updateAvailBar(avail){
+  const vals=Object.values(avail); if(!vals.length){hideAvailBar();return}
   const total=vals.reduce((s,v)=>s+v.remaining,0);
-  const full =vals.filter(v=>v.remaining===0).length;
-  const few  =vals.filter(v=>v.remaining===1).length;
-  if (total===0)      showAvailBar("ab-full","當天所有時段均已額滿，請選擇其他日期");
-  else if(full||few)  showAvailBar("ab-warn","部分時段即將額滿，請盡快選擇");
-  else                hideAvailBar();
+  const full=vals.filter(v=>v.remaining===0).length; const few=vals.filter(v=>v.remaining===1).length;
+  if(total===0) showAvailBar("ab-full","當天所有時段均已額滿，請選擇其他日期");
+  else if(full||few) showAvailBar("ab-warn","部分時段即將額滿，請盡快選擇");
+  else hideAvailBar();
 }
-function showAvailBar(cls,text){ const b=document.getElementById("avail-bar"); b.className="avail-bar show "+cls; document.getElementById("avail-text").textContent=text; }
-function hideAvailBar(){ document.getElementById("avail-bar").className="avail-bar"; }
+function showAvailBar(cls,text){const b=document.getElementById("avail-bar");b.className="avail-bar show "+cls;document.getElementById("avail-text").textContent=text}
+function hideAvailBar(){document.getElementById("avail-bar").className="avail-bar"}
 
-// ─── 頁面切換 ───────────────────────────────────────────────
-function goPage(n) {
+function goPage(n){
   document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
   document.getElementById("page"+n).classList.add("active");
   document.getElementById("step-bar").style.display="flex";
-  for(let i=1;i<=3;i++){
-    const el=document.getElementById("step"+i); const dot=el.querySelector(".step-dot");
-    el.className="step-item";
-    if(i<n){el.classList.add("done");dot.textContent="✓";}
-    else if(i===n){el.classList.add("active");dot.textContent=String(i);}
-    else dot.textContent=String(i);
-  }
+  for(let i=1;i<=3;i++){const el=document.getElementById("step"+i);const dot=el.querySelector(".step-dot");el.className="step-item";if(i<n){el.classList.add("done");dot.textContent="✓"}else if(i===n){el.classList.add("active");dot.textContent=String(i)}else dot.textContent=String(i)}
   window.scrollTo({top:0,behavior:"smooth"});
 }
-function showErr(id,show){ const el=document.getElementById(id); if(el) el.style.display=show?"block":"none"; }
+function showErr(id,show){const el=document.getElementById(id);if(el)el.style.display=show?"block":"none"}
 
-// ─── 驗證 P1 ────────────────────────────────────────────────
-function validatePage1() {
+function validatePage1(){
   let ok=true;
-  if(!selectedService)                                    {showErr("err-service",true);ok=false;}
-  if(!document.getElementById("appt-date").value)         {showErr("err-date",true);ok=false;}
-  if(isClosedDay(document.getElementById("appt-date").value)) ok=false;
-  if(!selectedTime)                                        {showErr("err-time",true);ok=false;}
-  if(ok) goPage(2);
+  if(!selectedService){showErr("err-service",true);ok=false}
+  if(!document.getElementById("appt-date").value){showErr("err-date",true);ok=false}
+  if(isClosedDay(document.getElementById("appt-date").value))ok=false;
+  if(!selectedTime){showErr("err-time",true);ok=false}
+  if(ok)goPage(2);
 }
 
-// ─── 驗證 P2 ────────────────────────────────────────────────
-function validatePage2() {
+function validatePage2(){
   let ok=true;
-  const plate  =document.getElementById("plate").value.trim();
-  const vin    =document.getElementById("vin").value.trim();
+  const plate=document.getElementById("plate").value.trim();
+  const vin=document.getElementById("vin").value.trim();
   const contact=document.getElementById("contact").value.trim();
-  const phone  =document.getElementById("phone").value.trim();
-  const email  =document.getElementById("email").value.trim();
-
-  if(!plate)  {showErr("err-plate",true);ok=false;}  else showErr("err-plate",false);
-  if(vin && vin.length!==17){showErr("err-vin",true);ok=false;} else showErr("err-vin",false);
-  if(!contact){showErr("err-contact",true);ok=false;} else showErr("err-contact",false);
-  if(!phone)  {showErr("err-phone",true);ok=false;}  else showErr("err-phone",false);
-  if(email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){showErr("err-email",true);ok=false;} else showErr("err-email",false);
-  if(!ok) return;
+  const phone=document.getElementById("phone").value.trim();
+  const email=document.getElementById("email").value.trim();
+  if(!plate){showErr("err-plate",true);ok=false}else showErr("err-plate",false);
+  if(vin&&vin.length!==17){showErr("err-vin",true);ok=false}else showErr("err-vin",false);
+  if(!contact){showErr("err-contact",true);ok=false}else showErr("err-contact",false);
+  if(!phone){showErr("err-phone",true);ok=false}else showErr("err-phone",false);
+  if(email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){showErr("err-email",true);ok=false}else showErr("err-email",false);
+  if(!ok)return;
 
   const parts=document.getElementById("appt-date").value.split("-");
-  document.getElementById("sum-service").textContent  = selectedService;
-  document.getElementById("sum-date").textContent     = parts[0]+" 年 "+parts[1]+" 月 "+parts[2]+" 日";
-  document.getElementById("sum-time").textContent     = selectedTime;
-  document.getElementById("sum-plate").textContent    = plate;
-  document.getElementById("sum-vin").textContent      = vin||"（未填）";
-  document.getElementById("sum-contact").textContent  = contact;
-  document.getElementById("sum-phone").textContent    = phone;
-  document.getElementById("sum-email").textContent    = email||"（未填）";
-  document.getElementById("sum-notes").textContent    = document.getElementById("notes").value.trim()||"無";
-  document.getElementById("sum-category").textContent = selectedCategory||"（未選）";
-  document.getElementById("sum-insurer").textContent  = document.getElementById("insurer").value||"（未選）";
-  if(IS_STAFF) document.getElementById("sum-contract").textContent =
-    contractState==="contract"?"有合約":contractState==="noncontract"?"非合約":"（未選）";
+  document.getElementById("sum-service").textContent=selectedService;
+  document.getElementById("sum-date").textContent=parts[0]+" 年 "+parts[1]+" 月 "+parts[2]+" 日";
+  document.getElementById("sum-time").textContent=selectedTime;
+  document.getElementById("sum-plate").textContent=plate;
+  document.getElementById("sum-vin").textContent=vin||"（未填）";
+  document.getElementById("sum-contact").textContent=contact;
+  document.getElementById("sum-phone").textContent=phone;
+  document.getElementById("sum-email").textContent=email||"（未填）";
+  document.getElementById("sum-notes").textContent=document.getElementById("notes").value.trim()||"無";
+  document.getElementById("sum-category").textContent=selectedCategory||"（未選）";
+  document.getElementById("sum-insurer").textContent=document.getElementById("insurer").value||"（未選）";
+  if(IS_STAFF)document.getElementById("sum-contract").textContent=contractState==="contract"?"有合約":contractState==="noncontract"?"非合約":"（未選）";
 
   const badge=document.getElementById("sum-cap-badge");
   const info=currentAvail[selectedTime];
-  const aFull=document.getElementById("alert-full"); const aFew=document.getElementById("alert-few");
-  aFull.classList.remove("show"); aFew.classList.remove("show");
-  document.getElementById("submit-btn").disabled=false;
+  const aFull=document.getElementById("alert-full");const aFew=document.getElementById("alert-few");
+  aFull.classList.remove("show");aFew.classList.remove("show");document.getElementById("submit-btn").disabled=false;
   if(info){
-    if(info.remaining<=0){badge.className="cap-badge-full";badge.textContent="（已額滿）";aFull.classList.add("show");document.getElementById("submit-btn").disabled=true;}
-    else if(info.remaining===1){badge.className="cap-badge-few";badge.textContent="（剩 1 台）";aFew.classList.add("show");}
-    else{badge.className="cap-badge-ok";badge.textContent="（剩 "+info.remaining+" 台）";}
-  } else badge.textContent="";
+    if(info.remaining<=0){badge.className="cap-badge-full";badge.textContent="（已額滿）";aFull.classList.add("show");document.getElementById("submit-btn").disabled=true}
+    else if(info.remaining===1){badge.className="cap-badge-few";badge.textContent="（剩 1 台）";aFew.classList.add("show")}
+    else{badge.className="cap-badge-ok";badge.textContent="（剩 "+info.remaining+" 台）"}
+  }else badge.textContent="";
   goPage(3);
 }
 
-// ─── 送出 ───────────────────────────────────────────────────
-async function submitBooking() {
+async function submitBooking(){
   const btn=document.getElementById("submit-btn");
-  btn.disabled=true; btn.textContent="送出中...";
-  showLoading("正在送出預約並發送通知...");
-  const payload={
-    action:"submitBooking", staffCode:IS_STAFF?STAFF_CODE_VAL:"",
-    service:selectedService,
-    date:document.getElementById("appt-date").value,
-    time:selectedTime,
+  btn.disabled=true;btn.textContent="送出中...";showLoading("正在送出預約並發送通知...");
+  const payload={action:"submitBooking",staffCode:IS_STAFF?STAFF_CODE_VAL:"",service:selectedService,
+    date:document.getElementById("appt-date").value,time:selectedTime,
     plate:document.getElementById("plate").value.trim().toUpperCase(),
     vin:document.getElementById("vin").value.trim().toUpperCase(),
     contact:document.getElementById("contact").value.trim(),
     phone:document.getElementById("phone").value.trim(),
     email:document.getElementById("email").value.trim(),
     notes:document.getElementById("notes").value.trim(),
-    category:selectedCategory,
-    insurer:document.getElementById("insurer").value,
-    contractState:IS_STAFF?contractState:"",
-  };
-  try {
-    const ctrl=new AbortController(); setTimeout(()=>ctrl.abort(),20000);
+    category:selectedCategory,insurer:document.getElementById("insurer").value,
+    contractState:IS_STAFF?contractState:""};
+  try{
+    const ctrl=new AbortController();setTimeout(()=>ctrl.abort(),20000);
     const res=await fetch(APP_CONFIG.SCRIPT_URL,{method:"POST",body:JSON.stringify(payload),signal:ctrl.signal});
-    const data=await res.json(); hideLoading();
+    const data=await res.json();hideLoading();
     if(data.success){
       document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
       document.getElementById("page-success").classList.add("active");
       document.getElementById("step-bar").style.display="none";
       window.scrollTo({top:0,behavior:"smooth"});
-    } else if(data.full){
-      btn.disabled=true; btn.textContent="確認送出預約";
-      document.getElementById("alert-full").classList.add("show");
-      alert("⚠️ "+data.error+"\n\n請返回重新選擇時段。");
-    } else throw new Error(data.error||"送出失敗");
-  } catch(e){
-    hideLoading(); btn.disabled=false; btn.textContent="確認送出預約";
-    alert(e.name==="AbortError"?"連線逾時，請稍後再試。":"送出失敗："+e.message);
-  }
+    }else if(data.full){btn.disabled=true;btn.textContent="確認送出預約";document.getElementById("alert-full").classList.add("show");alert("⚠️ "+data.error+"\n\n請返回重新選擇時段。")}
+    else throw new Error(data.error||"送出失敗");
+  }catch(e){hideLoading();btn.disabled=false;btn.textContent="確認送出預約";alert(e.name==="AbortError"?"連線逾時，請稍後再試。":"送出失敗："+e.message)}
 }
 
-// ─── 重設 ───────────────────────────────────────────────────
-function resetAll() {
-  selectedService=""; selectedTime=""; selectedCategory=""; contractState=""; currentAvail={};
+function resetAll(){
+  selectedService="";selectedTime="";selectedCategory="";contractState="";currentAvail={};
   ["plate","vin","contact","phone","email","notes"].forEach(id=>document.getElementById(id).value="");
-  document.getElementById("appt-date").value="";
-  document.getElementById("date-closed").style.display="none";
+  document.getElementById("appt-date").value="";document.getElementById("date-closed").style.display="none";
   document.getElementById("insurer").value="";
-  if(IS_STAFF){ document.getElementById("btn-contract").className="contract-btn"; document.getElementById("btn-noncontract").className="contract-btn"; }
-  document.getElementById("submit-btn").disabled=false; document.getElementById("submit-btn").textContent="確認送出預約";
-  document.getElementById("alert-full").classList.remove("show"); document.getElementById("alert-few").classList.remove("show");
+  if(IS_STAFF){document.getElementById("btn-contract").className="contract-btn";document.getElementById("btn-noncontract").className="contract-btn"}
+  document.getElementById("submit-btn").disabled=false;document.getElementById("submit-btn").textContent="確認送出預約";
+  document.getElementById("alert-full").classList.remove("show");document.getElementById("alert-few").classList.remove("show");
   document.querySelectorAll(".svc-opt").forEach(c=>c.classList.remove("selected"));
   document.querySelectorAll(".cat-opt").forEach(c=>c.classList.remove("selected"));
-  renderTimeSlotsEmpty(); hideAvailBar(); goPage(1);
+  renderTimeSlotsEmpty();hideAvailBar();goPage(1);
 }
-function showLoading(msg){document.getElementById("loading-text").textContent=msg||"處理中...";document.getElementById("loading").classList.add("show");}
-function hideLoading(){document.getElementById("loading").classList.remove("show");}
+
+function showLoading(msg){document.getElementById("loading-text").textContent=msg||"處理中...";document.getElementById("loading").classList.add("show")}
+function hideLoading(){document.getElementById("loading").classList.remove("show")}
 </script>
 </body>
 </html>
